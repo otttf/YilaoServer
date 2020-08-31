@@ -1,7 +1,8 @@
-from base import app
+from base import app, DBGConfig
 from markdown import markdown
 import os
-from .user import UserResource
+from .debug import DebugResource
+from .user import UserResource, VerifiedUserResource
 from .validation import ValidationResource
 from ..util import BaseApi
 
@@ -21,6 +22,8 @@ def register_api_1_0():
     def get_doc():
         return doc
 
-    UserResource.ClearInactiveUserThread(daemon=True).start()
     api1_0.add_resource(UserResource, '/v1.0/users/<int:mobile>')
     api1_0.add_resource(ValidationResource, '/v1.0/users/<int:mobile>/validations')
+    api1_0.add_resource(VerifiedUserResource, '/v1.0/verifiedUsers/<int:mobile>')
+    if DBGConfig.on:
+        api1_0.add_resource(DebugResource, '/v1.0/')

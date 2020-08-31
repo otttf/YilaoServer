@@ -269,3 +269,4 @@ cython_debug/
 
 ### Custom ignore
 config/secret.json
+test.py

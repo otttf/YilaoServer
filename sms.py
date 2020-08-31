@@ -5,7 +5,7 @@ from random import randint
 
 
 def rand_code():
-    if DBGConfig.fixed_sms_code is not None:
+    if DBGConfig.on and DBGConfig.fixed_sms_code is not None:
         return DBGConfig.fixed_sms_code
     else:
         return f'{randint(0, 9999):04}'
@@ -13,7 +13,7 @@ def rand_code():
 
 def send_code(mobile: int, code: str):
     """发送验证码"""
-    if DBGConfig.no_sms:
+    if DBGConfig.on and DBGConfig.no_sms:
         return
 
     # 阿里云验证码code的相关规定：code必须为数字或字母，且长度不大于6

@@ -5,7 +5,8 @@ from typing import List, Optional
 
 
 class DBGConfig:
-    drop_database_before_run: bool = False
+    on = True
+    drop_database_before_run: bool = True
     no_sms: bool = True
     fixed_sms_code: Optional[str] = '1234'
 

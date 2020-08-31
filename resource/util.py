@@ -1,10 +1,12 @@
 from base import logger, mycursor, scon
 from flask import request, Response
 from flask_restful import Api
+from hashlib import sha256
 import json
 from marshmallow import Schema
 from marshmallow.exceptions import ValidationError
 import mysql.connector
+from mysql.connector.errorcode import *
 import re
 from werkzeug.exceptions import HTTPException
 
@@ -159,8 +161,11 @@ class BaseApi(Api):
         elif isinstance(e, HTTPException):
             return Response(status=e.code)
         elif isinstance(e, mysql.connector.Error):
-            logger.debug(type(e), str(e))
-            return Response(status=500)
+            if e.errno == ER_DUP_ENTRY:
+                return Response(status=409)
+            else:
+                logger.debug(type(e), str(e))
+                return Response(status=500)
         elif isinstance(e, MySQLUtil.Error):
             return {'msg': str(e)}, 400
         elif isinstance(e, ValidationError):
@@ -168,3 +173,7 @@ class BaseApi(Api):
         else:
             logger.debug(type(e), str(e))
             return Response(status=500)
+
+
+def hash_passwd(s: str):
+    return sha256(s.encode()).hexdigest()

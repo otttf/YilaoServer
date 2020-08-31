@@ -14,7 +14,7 @@ def _use(_): pass
 def init_database():
     with SmartCursor(connect_mysql(db=None)) as c:
         if Environment.rank() == 0:
-            if DBGConfig.drop_database_before_run:
+            if DBGConfig.on and DBGConfig.drop_database_before_run:
                 c.execute(f'drop database if exists {MySQLConfig.db}')
             c.execute(f'create database if not exists {MySQLConfig.db}')
             c.execute(f'use {MySQLConfig.db}')

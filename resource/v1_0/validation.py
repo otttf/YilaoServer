@@ -1,11 +1,10 @@
 from base import Environment, mycursor, rcon, ResourceConfig
 from flask import Response
 from flask_restful import Resource
-from hashlib import sha256
 from schema import UserSchema, ValidationSchema
 from sms import rand_code, send_code
 from uuid import uuid4
-from ..util import ArgsUtil, BodyUtil
+from ..util import ArgsUtil, BodyUtil, hash_passwd
 
 
 class ValidationResource(Resource):
@@ -38,19 +37,17 @@ class ValidationResource(Resource):
                         rcon.set(name, token, ex=ResourceConfig.Token.expire)
                     value = res[0]
         else:
-            rcon.expire(name, ex=ResourceConfig.Token.expire)
+            rcon.expire(name, ResourceConfig.Token.expire)
         return value and value == token
 
     @classmethod
     def login_required(cls, func, user_schema=UserSchema(), validation_schema=ValidationSchema()):
-        def wrapper(**kwargs):
+        def wrapper(obj, **kwargs):
             mobile = kwargs['mobile']
             platform = ArgsUtil.one('platform', schema=validation_schema)
             token = ArgsUtil.one('token', schema=user_schema)
-            with mycursor(autocommit=False) as c:
-                res = cls.validate(mobile, platform, token)
-            if res:
-                return func(**kwargs)
+            if cls.validate(mobile, platform, token.hex):
+                return func(obj, **kwargs)
             else:
                 return Response(status=401)
 
@@ -61,7 +58,7 @@ class ValidationResource(Resource):
         platform = ArgsUtil.one('platform', schema=validation_schema)
         with mycursor() as c:
             c.execute('select count(*) from user where mobile=%s and sha256_passwd=%s limit 1',
-                      (mobile, sha256(passwd.encode()).hexdigest()))
+                      (mobile, hash_passwd(passwd)))
             if c.fetchone()[0] == 1:
                 token = self.set_token(mobile, platform, c)
                 return user_schema.dump({'token': token}), 200
@@ -85,6 +82,6 @@ class ValidationResource(Resource):
                           (mobile,))
                 token = self.set_token(mobile, platform, c)
             rcon.delete(validation_name)
-            return user_schema.dump({'token': token}), 200
+            return {'token': token}, 200
         else:
             return Response(status=401)
