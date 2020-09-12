@@ -8,7 +8,7 @@ create table user
     default_location point,
     address          varchar(64),
     mark             set ('test') comment '特殊标记：用来给用户增加一系列状态',
-    verify_at        timestamp,
+    create_at        timestamp not null default current_timestamp,
     constraint user_chk_mobile check (mobile regexp '^1[3-9]\\d{9}$'),
     constraint user_chk_locate check (default_location != point(0, 90) or address is null)
 );
@@ -17,11 +17,19 @@ create table user
 create table token
 (
     user     bigint unsigned,
-    platform enum ('phone', 'browser', 'pc'),
+    appid    char(32),
     hex      char(32),
-    primary key (user, platform),
-    foreign key (user) references user (mobile)
+    # privilege set (''),
+    deadline timestamp,
+    primary key (user, appid),
+    foreign key (user) references user (mobile),
+    index (deadline)
 );
+
+# 每个小时清理一次过期token
+create event token_event_auto_clear on schedule every 1 hour do delete
+                                                                from token
+                                                                where deadline < current_timestamp;
 
 create table resource
 (
@@ -112,6 +120,7 @@ create table task
 (
     id             int unsigned primary key auto_increment,
     name           varchar(32)             not null,
+    type           varchar(32)             not null,
     detail         text,
     protected_info text,
     photo          int unsigned,

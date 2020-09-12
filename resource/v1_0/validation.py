@@ -1,87 +1,152 @@
-from base import Environment, mycursor, rcon, ResourceConfig
+from config.abstractconfig import DBGConfig, Environment, ResourceConfig
 from flask import Response
 from flask_restful import Resource
-from schema import UserSchema, ValidationSchema
+from functools import wraps
+import json
 from sms import rand_code, send_code
 from uuid import uuid4
-from ..util import ArgsUtil, BodyUtil, hash_passwd
+from ..util import get_rcon, hash_passwd, mycursor
+from flask import request
 
 
-class ValidationResource(Resource):
+class SMSResource(Resource):
     @staticmethod
-    def token_name(mobile, platform):
-        return f'{Environment.root_dir}/users/{mobile}/tokens/{platform}'
+    def sms_name(appid, mobile, method, base_url):
+        appid = str(appid).lower()
+        mobile = str(mobile)
+        method = str(method).upper()
+        base_url = str(base_url).lower()
+        return f'{Environment.root_dir}/sms?{appid=}&{mobile=}&{method=}&{base_url=}'
 
-    @staticmethod
-    def validation_name(mobile, platform):
-        return f'{Environment.root_dir}/users/{mobile}/validations/{platform}'
+    def post(self):
+        data = json.loads(request.data)
+        appid = data.get('appid')
+        if appid not in ResourceConfig.SMS.appid_list:
+            return Response(status=403)
 
-    @classmethod
-    def set_token(cls, mobile, platform, c):
-        token = uuid4().hex
-        c.execute('replace into token values(%s, %s, %s)', (mobile, platform, token))
-        if ResourceConfig.Token.cache:
-            rcon.set(cls.token_name(mobile, platform), token, ex=ResourceConfig.Token.expire)
-        return token
-
-    @classmethod
-    def validate(cls, mobile, platform, token):
-        name = cls.token_name(mobile, platform)
-        value = rcon.get(name)
-        if not value:
-            with mycursor(autocommit=False) as c:
-                c.execute('select hex from token where user=%s and platform=%s limit 1', (mobile, platform))
-                res = c.fetchone()
-                if res:
-                    if ResourceConfig.Token.cache:
-                        rcon.set(name, token, ex=ResourceConfig.Token.expire)
-                    value = res[0]
+        count_name = f"{Environment.root_dir}/sms/count?mobile={data['mobile']}"
+        rcon = get_rcon()
+        count = rcon.incr(count_name)
+        if rcon.ttl(count_name) == -1:
+            rcon.expire(count_name, ResourceConfig.Validation.expire)
+        if (not DBGConfig.on or not DBGConfig.close_message_limit) and count > ResourceConfig.Validation.max_count:
+            return {'msg': 'frequent request'}, 400
         else:
-            rcon.expire(name, ResourceConfig.Token.expire)
-        return value and value == token
+            name = self.sms_name(**data)
+            code = rand_code()
+            rcon.set(name, code, ex=ResourceConfig.Validation.expire)
+            send_code(data['mobile'], code)
 
     @classmethod
-    def login_required(cls, func, user_schema=UserSchema(), validation_schema=ValidationSchema()):
-        def wrapper(obj, **kwargs):
-            mobile = kwargs['mobile']
-            platform = ArgsUtil.one('platform', schema=validation_schema)
-            token = ArgsUtil.one('token', schema=user_schema)
-            if cls.validate(mobile, platform, token.hex):
-                return func(obj, **kwargs)
+    def validate(cls, func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            mobile = kwargs.get('mobile', request.args.get('mobile', ''))
+            appid = request.args.get('appid', '')
+            name = cls.sms_name(appid, mobile, request.method, request.base_url)
+            code = request.args.get('code')
+            rcon = get_rcon()
+            if rcon.get(name) == code:
+                return func(*args, **kwargs)
             else:
                 return Response(status=401)
 
         return wrapper
 
-    def get(self, mobile, user_schema=UserSchema(), validation_schema=ValidationSchema()):
-        passwd = ArgsUtil.one('passwd', schema=user_schema)
-        platform = ArgsUtil.one('platform', schema=validation_schema)
+
+class PasswdResource(Resource):
+    @staticmethod
+    def validate(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            mobile = kwargs.get('mobile', request.args.get('mobile', ''))
+            passwd = request.args.get('passwd')
+            if passwd:
+                with mycursor(autocommit=False) as c:
+                    c.execute('select sha256_passwd from user where mobile=%s limit 1', (mobile,))
+                    res = c.fetchone()
+                    if res is None:
+                        return {'msg': 'nonexistent user'}, 404
+                    if res[0] == hash_passwd(passwd):
+                        return func(*args, **kwargs)
+            return Response(status=401)
+
+        return wrapper
+
+
+def or_(*validate_func):
+    if len(validate_func) == 0:
+        raise ValueError('empty func tuple')
+
+    def _(func):
+        artifact = []
+        for it in validate_func:
+            artifact.append(it(func))
+
+        def wrapper(*args, **kwargs):
+            for it_ in artifact:
+                res = it_(*args, **kwargs)
+                if not isinstance(res, Response) or res.status_code != 401:
+                    return res
+
+            return Response(status=401)
+
+        return wrapper
+
+    return _
+
+
+class TokenResource(Resource):
+    @staticmethod
+    def token_name(mobile, appid):
+        appid = str(appid).lower()
+        return f'{Environment.root_dir}/mobile/{mobile}/token?{appid=}'
+
+    @or_(SMSResource.validate, PasswdResource.validate)
+    def post(self, mobile):
+        appid = request.args.get('appid')
+        uuid = uuid4().hex
+        privilege = ''
+        deadline = None
         with mycursor() as c:
-            c.execute('select count(*) from user where mobile=%s and sha256_passwd=%s limit 1',
-                      (mobile, hash_passwd(passwd)))
-            if c.fetchone()[0] == 1:
-                token = self.set_token(mobile, platform, c)
-                return user_schema.dump({'token': token}), 200
+            c.execute(
+                'replace into token(user, appid, hex, privilege, deadline) '
+                'values (%s, %s, %s, %s, current_timestamp + interval %s second)',
+                (mobile, appid, uuid, privilege, deadline))
+        return {'token': uuid}, 201
+
+    @classmethod
+    def validate(cls, func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            mobile = kwargs.get('mobile', request.args.get('mobile', ''))
+            appid = request.args.get('appid')
+            name = cls.token_name(mobile, appid)
+            token = request.args.get('token')
+            rcon = get_rcon()
+            res = rcon.get(name)
+            if res is None:
+                with mycursor(autocommit=False) as c:
+                    c.execute(
+                        'select hex from token where user=%s and appid=%s and current_timestamp < deadline limit 1',
+                        (mobile, appid))
+                    res = c.fetchone()
+                    if res:
+                        res = res[0]
+                        rcon.set(name, res, ex=ResourceConfig.Token.expire, nx=True)
+            if res == token:
+                return func(*args, **kwargs)
             else:
                 return Response(status=401)
 
-    def post(self, mobile, validation_schema=ValidationSchema(only=('platform',))):
-        platform, = BodyUtil.require(BodyUtil.parse(validation_schema), 'platform')
-        code = rand_code()
-        rcon.set(self.validation_name(mobile, platform), code, ex=ResourceConfig.Validation.expire)
-        send_code(mobile, code)
-        return Response(status=201)
+        return wrapper
 
-    def delete(self, mobile, user_schema=UserSchema(), validation_schema=ValidationSchema()):
-        platform = ArgsUtil.one('platform', schema=validation_schema)
-        code = ArgsUtil.one('code', schema=validation_schema)
-        validation_name = self.validation_name(mobile, platform)
-        if rcon.get(validation_name) == code:
-            with mycursor() as c:
-                c.execute('update user set verify_at=current_timestamp where mobile=%s and verify_at is null limit 1',
-                          (mobile,))
-                token = self.set_token(mobile, platform, c)
-            rcon.delete(validation_name)
-            return {'token': token}, 200
-        else:
-            return Response(status=401)
+
+sms_validate = SMSResource.validate
+passwd_validate = PasswdResource.validate
+token_validate = TokenResource.validate
+
+
+def test(validate_func):
+    res = validate_func(lambda: True)()
+    return res is True

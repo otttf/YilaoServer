@@ -1,29 +1,45 @@
-from base import app, DBGConfig
-from markdown import markdown
+from config.abstractconfig import DBGConfig, Environment
+from flask import send_from_directory, redirect
+from mkdocs import config
+from mkdocs.__main__ import build
 import os
+import tempfile
+from wrap import send, recv
 from .debug import DebugResource
-from .user import UserResource, VerifiedUserResource
-from .validation import ValidationResource
-from ..util import BaseApi
+from .order import OrderListResource, OrderResource
+from .user import UserResource
+from .validation import PasswdResource, SMSResource
+from ..util import BaseApi, get_rcon
 
 
 class Api1o0(BaseApi):
     pass
 
 
-api1_0 = Api1o0(app)
+def register_api_1_0(app):
+    api = Api1o0(app)
+    name = f'{Environment.root_dir}/{os.getppid()}/v1.0/docs_path'
+    if Environment.rank() == 0:
+        td = tempfile.TemporaryDirectory()
+        site_dir = td.name
+        build.build(config.load_config(f'{__path__[0]}/docs/mkdocs.yml', site_dir=site_dir), dirty=True)
+        send(get_rcon(), name, site_dir)
+    else:
+        site_dir = recv(get_rcon(), name)
 
+    @app.route('/v1.0/docs/', methods=['GET'])
+    def docs_index():
+        return redirect('./index.html')
 
-def register_api_1_0():
-    with open(rf'{__path__[0]}{os.sep}doc.md') as f:
-        doc = markdown(f.read())
+    @app.route('/v1.0/docs/<path:filename>', methods=['GET'])
+    def get_doc(filename):
+        return send_from_directory(site_dir, filename)
 
-    @app.route('/v1.0')
-    def get_doc():
-        return doc
-
-    api1_0.add_resource(UserResource, '/v1.0/users/<int:mobile>')
-    api1_0.add_resource(ValidationResource, '/v1.0/users/<int:mobile>/validations')
-    api1_0.add_resource(VerifiedUserResource, '/v1.0/verifiedUsers/<int:mobile>')
+    api.add_resource(OrderListResource, '/v1.0/users/<int:mobile>/orders')
+    api.add_resource(OrderResource, '/v1.0/users/<int:mobile>/orders/<int:order_id>')
+    api.add_resource(SMSResource, '/v1.0/sms')
+    api.add_resource(UserResource, '/v1.0/users/<int:mobile>')
     if DBGConfig.on:
-        api1_0.add_resource(DebugResource, '/v1.0/')
+        api.add_resource(DebugResource, '/v1.0/')
+
+    return api

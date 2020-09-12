@@ -1,17 +1,27 @@
-from base import logger, mycursor, scon
 from flask import request, Response
 from flask_restful import Api
+from functools import lru_cache
 from hashlib import sha256
 import json
+import logging
 from marshmallow import Schema
 from marshmallow.exceptions import ValidationError
 import mysql.connector
 from mysql.connector.errorcode import *
 import re
 from werkzeug.exceptions import HTTPException
+from wrap import connect_mysql, connect_redis, SmartCursor
+
+logger = logging
+get_mcon = connect_mysql
+get_rcon = connect_redis
 
 
-def _use(_): pass
+def mycursor(conn=get_mcon(), autocommit=True, close_conn=False, buffered=None, raw=None, prepared=None,
+             cursor_class=None,
+             dictionary=None, named_tuple=None):
+    return SmartCursor(conn, autocommit, close_conn, buffered=buffered, raw=raw, prepared=prepared,
+                       cursor_class=cursor_class, dictionary=dictionary, named_tuple=named_tuple)
 
 
 class ArgsUtil:
@@ -31,33 +41,26 @@ class ArgsUtil:
             raise cls.Error(f'unknown argument <{res}>')
 
     @classmethod
-    def one(cls, name: str, *, schema: Schema = None, raise_if_none=True):
-        res: list = request.args.getlist(name)
-        if len(res) == 0:
-            if raise_if_none:
-                raise cls.Error(f'param <{name}>: required')
-            else:
-                return None
-        elif len(res) == 1:
-            cls.set_used(name)
-            res = res[0]
-            if schema:
-                res = schema.load({name: res})[name]
-            return res
-        else:
-            cls.set_used(name)
-            raise cls.Error(f'param <{name}>: more than one')
-
-    @classmethod
-    def get(cls, name: str, *, schema: Schema = None, raise_if_none=True):
+    def get(cls, name: str, *, schema: Schema = None, one=True, raise_if_none=True):
         res = request.args.getlist(name)
         if len(res) == 0:
             if raise_if_none:
                 raise cls.Error(f'param <{name}>: required')
-            res = None
+            return None
         cls.set_used(name)
+        if one and len(res) != 1:
+            raise cls.Error(f'param <{name}>: only one is required')
         if schema:
             res = [schema.load({name: it})[name] for it in res]
+        if one:
+            res = res[0]
+        return res
+
+    @classmethod
+    def gets(cls, *args, schema: Schema = None, one=True, raise_if_partial=True):
+        res = []
+        for it in args:
+            res.append(cls.get(it, schema=schema, one=one, raise_if_none=raise_if_partial))
         return res
 
 
@@ -68,7 +71,7 @@ class BodyUtil:
     @classmethod
     def parse(cls, schema=None):
         try:
-            res = json.loads(request.data.decode())
+            res = json.loads(request.data)
             if schema:
                 res = schema.load(res)
             return res
@@ -92,7 +95,7 @@ class CursorUtil:
         return (it[0] for it in c.description)
 
     @classmethod
-    def one(cls, c, *, raise_if_none=True):
+    def one(cls, c, raise_if_none=True):
         row = c.fetchone()
         if raise_if_none and not row:
             raise cls.Error('not exist')
@@ -100,7 +103,7 @@ class CursorUtil:
         return dict(zip(column_name, row))
 
     @classmethod
-    def get(cls, c, *, raise_if_none=True):
+    def get(cls, c, raise_if_none=True):
         rows = c.fetchall()
         if raise_if_none and not rows:
             raise cls.Error('not exist')
@@ -111,6 +114,19 @@ class CursorUtil:
 class MySQLUtil:
     class Error(Exception):
         pass
+
+    @staticmethod
+    @lru_cache(1)
+    def null_point():
+        with mycursor(autocommit=False) as c:
+            c.execute('select point(0, 90)')
+            return c.fetchone()[0]
+
+    @classmethod
+    def set_default_point(cls, di, key, default=None):
+        default = default or cls.null_point()
+        if key not in di:
+            di[key] = default
 
     @classmethod
     def to_point(cls, di, name):
@@ -149,7 +165,8 @@ class MySQLUtil:
 
 
 class BaseApi(Api):
-    mysql_constraint_pattern = re.compile(r"Check constraint '(\w+)' is violated.")
+    dup_entry = re.compile(r"Check constraint '(\w+)' is violated.")
+    field_specified_twice = re.compile(r"Column '(\w+)' specified twice")
 
     def handle_error(self, e):
         if isinstance(e, ArgsUtil.Error):
@@ -162,16 +179,19 @@ class BaseApi(Api):
             return Response(status=e.code)
         elif isinstance(e, mysql.connector.Error):
             if e.errno == ER_DUP_ENTRY:
-                return Response(status=409)
+                return {'msg': e.msg}, 409
+            elif e.errno == ER_FIELD_SPECIFIED_TWICE:
+                key = self.field_specified_twice.match(e.msg)[1]
+                return {'msg': f'"{key}" specified twice'}, 400
             else:
-                logger.debug(type(e), str(e))
+                logger.debug(str(e))
                 return Response(status=500)
         elif isinstance(e, MySQLUtil.Error):
             return {'msg': str(e)}, 400
         elif isinstance(e, ValidationError):
             return {'msg': e.args[0]}, 400
         else:
-            logger.debug(type(e), str(e))
+            logger.debug(str(e))
             return Response(status=500)
 
 

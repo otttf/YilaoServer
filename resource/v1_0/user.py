@@ -1,64 +1,55 @@
-from base import mycursor, rcon, _use
 from flask import request, Response
 from flask_restful import Resource
-from schema import UserSchema
-from ..util import ArgsUtil, CursorUtil, MySQLUtil, hash_passwd
-from .validation import ValidationResource
+from schema import UserSchema, user_schema
+from wrap import _use
+from ..util import hash_passwd, mycursor, MySQLUtil
+from .validation import or_, passwd_validate, sms_validate, test, token_validate
 
 
 class UserResource(Resource):
-    @ValidationResource.login_required
-    def get(self, mobile, user_schema=UserSchema()):
+    def get(self, mobile):
         _use(self)
-        with mycursor() as c:
+        with mycursor(dictionary=True) as c:
             c.execute('select * from user where mobile=%s limit 1', (mobile,))
-            res = CursorUtil.one(c)
+            res = c.fetchone()
+            if res is None:
+                return Response(status=404)
+            if not test(token_validate):
+                return Response(status=401)
             MySQLUtil.div_point(res, 'default_location')
             return user_schema.dump(res)
 
-    def put(self, mobile, user_schema=UserSchema()):
-        _use(self)
-        mobile = user_schema.load({'mobile': mobile})['mobile']
+    @sms_validate
+    def put(self, mobile, partial_user_schema=UserSchema(only=('passwd',))):
+        mobile = user_schema.load({'mobile': mobile}, partial=True)['mobile']
+        passwd = partial_user_schema.loads(request.data.decode())['passwd']
+
         with mycursor() as c:
-            c.execute('insert into user(mobile, default_location) values (%s, point(0, 90))', (mobile,))
+            c.execute('insert into user(mobile, sha256_passwd, default_location) '
+                      'values (%s, %s, point(0, 90))',
+                      (mobile, hash_passwd(passwd)))
             return Response(status=201)
 
-    @ValidationResource.login_required
-    def patch(self, mobile, user_schema=UserSchema(exclude=('mobile', 'token'))):
+    def patch(self, mobile, partial_user_schema=UserSchema(exclude=('mobile',), partial=True)):
         _use(self)
-        new_data = user_schema.loads(request.data.decode())
+        new_data = partial_user_schema.loads(request.data.decode())
+        secret_field = {'passwd'}
+        field = set(new_data.keys())
+        intersection = secret_field & field
+        if len(intersection) > 0:
+            if field != secret_field:
+                return {'msg': 'common field and secret filed could not be given together'}, 400
+            if not test(or_(passwd_validate, sms_validate)):
+                return Response(status=401)
+        else:
+            if not test(token_validate):
+                return Response(status=401)
+
+        if 'passwd' in new_data:
+            new_data['sha256_passwd'] = hash_passwd(new_data.pop('passwd'))
         MySQLUtil.to_point(new_data, 'default_location')
 
         with mycursor() as c:
-            discard_tokens = False
-            if 'passwd' in new_data:
-                discard_tokens = True
-                arg_passwd = ArgsUtil.one('passwd', schema=user_schema, raise_if_none=False)
-                c.execute('select sha256_passwd from user where mobile=%s', (mobile,))
-                sha256_passwd = c.fetchone()[0]
-                sha256_arg_passwd = arg_passwd and hash_passwd(arg_passwd)
-                if sha256_passwd != sha256_arg_passwd:
-                    return {'msg': 'wrong passwd'}, 400
-                new_data['sha256_passwd'] = hash_passwd(new_data.pop('passwd'))
-                c.execute('delete from token where user=%s', (mobile,))
-
-            to_update = ', '.join(map(lambda it: f'{it}=%s', new_data.keys()))
+            to_update = ', '.join(map(lambda _it: f'{_it}=%s', new_data.keys()))
             c.execute(f"update user set {to_update} where mobile=%s", (*tuple(new_data.values()), mobile))
-
-            if discard_tokens:
-                keys = rcon.keys(ValidationResource.token_name(mobile, '*'))
-                for it in keys:
-                    rcon.delete(it)
-
             return Response(status=204)
-
-
-class VerifiedUserResource(Resource):
-    def get(self, mobile):
-        _use(self)
-        with mycursor() as c:
-            c.execute('select count(*) from user where mobile=%s and verify_at is not null limit 1', (mobile,))
-            if c.fetchone()[0] == 1:
-                return Response(status=200)
-            else:
-                return Response(status=404)

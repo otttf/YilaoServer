@@ -2,4 +2,5 @@ from flask_restful import Resource
 
 
 class DebugResource(Resource):
-    pass
+    def post(self):
+        pass

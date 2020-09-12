@@ -2,13 +2,12 @@ from config.yilaoconfig import *
 from flask import Flask
 import logging
 from mysqlscript import iter_table, UserVersion
-from wrap import connect_mysql, rcon, SmartCursor, Sync
+from resource import *
+import resource.util
+from wrap import connect_mysql, connect_redis, SmartCursor, Sync
 
 logging.basicConfig(level=LogConfig.level, format=LogConfig.format_patterns[LogConfig.pattern_n])
 logger = logging
-
-
-def _use(_): pass
 
 
 def init_database():
@@ -17,6 +16,7 @@ def init_database():
             if DBGConfig.on and DBGConfig.drop_database_before_run:
                 c.execute(f'drop database if exists {MySQLConfig.db}')
             c.execute(f'create database if not exists {MySQLConfig.db}')
+            c.execute('set foreign_key_checks = %s', (not DBGConfig.close_foreign_key,))
             c.execute(f'use {MySQLConfig.db}')
             for it in iter_table:
                 if UserVersion.get(c) == it.require_version:
@@ -25,15 +25,19 @@ def init_database():
                     UserVersion.update_to(it.version, c)
 
 
-if MySQLConfig.init_database:
-    with Sync():
-        init_database()
+def sync():
+    return Sync(rcon)
 
-# 全局静态的连接，用于在非flask的地方使用
-_use(rcon)
-scon = connect_mysql()
+
+rcon = connect_redis()
+impl(rcon)
+if MySQLConfig.init_database:
+    with sync():
+        init_database()
+mcon = connect_mysql()
 app = Flask(__name__)
 
+resource.util.get_mcon = lambda: mcon
+resource.util.get_rcon = lambda: rcon
 
-def mycursor(conn=scon, autocommit=True, close_conn=False):
-    return SmartCursor(conn, autocommit, close_conn)
+register_api_1_0(app)
