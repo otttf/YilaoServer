@@ -13,10 +13,9 @@ logger = logging
 def init_database():
     with SmartCursor(connect_mysql(db=None)) as c:
         if Environment.rank() == 0:
-            if DBGConfig.on and DBGConfig.drop_database_before_run:
+            if DBGConfig.on and DBGConfig.MySQL.drop_before_run:
                 c.execute(f'drop database if exists {MySQLConfig.db}')
             c.execute(f'create database if not exists {MySQLConfig.db}')
-            c.execute('set foreign_key_checks = %s', (not DBGConfig.close_foreign_key,))
             c.execute(f'use {MySQLConfig.db}')
             for it in iter_table:
                 if UserVersion.get(c) == it.require_version:

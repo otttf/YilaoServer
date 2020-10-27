@@ -121,6 +121,7 @@ create table task
     id             int unsigned primary key auto_increment,
     name           varchar(32)             not null,
     type           varchar(32)             not null,
+    category       varchar(32),
     detail         text,
     protected_info text,
     photo          int unsigned,

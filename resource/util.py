@@ -1,3 +1,4 @@
+from config.abstractconfig import DBGConfig
 from flask import request, Response
 from flask_restful import Api
 from functools import lru_cache
@@ -18,8 +19,7 @@ get_rcon = connect_redis
 
 
 def mycursor(conn=get_mcon(), autocommit=True, close_conn=False, buffered=None, raw=None, prepared=None,
-             cursor_class=None,
-             dictionary=None, named_tuple=None):
+             cursor_class=None, dictionary=None, named_tuple=None):
     return SmartCursor(conn, autocommit, close_conn, buffered=buffered, raw=raw, prepared=prepared,
                        cursor_class=cursor_class, dictionary=dictionary, named_tuple=named_tuple)
 
@@ -150,8 +150,8 @@ class MySQLUtil:
                 c.execute('select point(%s, %s)', (longitude, latitude))
                 di[name] = c.fetchone()[0]
 
-    @classmethod
-    def div_point(cls, di, name, point_pattern=re.compile(r'POINT\(([0-9.]+) ([0-9.]+)\)')):
+    @staticmethod
+    def div_point(di, name, point_pattern=re.compile(r'POINT\(([0-9.]+) ([0-9.]+)\)')):
         point = di.pop(name)
         with mycursor(autocommit=False) as c:
             c.execute('select st_astext(%s)', (point,))
@@ -163,6 +163,24 @@ class MySQLUtil:
         di[f'{name}_longitude'] = longitude
         di[f'{name}_latitude'] = latitude
 
+    @staticmethod
+    def rect(left, top, right, bottom):
+        try:
+            left = float(left)
+            top = float(top)
+            right = float(right)
+            bottom = float(bottom)
+            if left < right or top < bottom:
+                return
+        except ValueError:
+            return
+
+        with mycursor(autocommit=False) as c:
+            c.execute("select st_polyfromtext('POLYGON((%s %s, %s %s, %s %s, %s %s, %s %s))')",
+                      (left, top, right, top, right, bottom, left, bottom, left, top))
+            return c.fetchone()
+
+
 
 class BaseApi(Api):
     dup_entry = re.compile(r"Check constraint '(\w+)' is violated.")
@@ -170,29 +188,37 @@ class BaseApi(Api):
 
     def handle_error(self, e):
         if isinstance(e, ArgsUtil.Error):
-            return {'msg': str(e)}, 400
+            return message(exc=str(e)), 400
         elif isinstance(e, BodyUtil.Error):
-            return {'msg': str(e)}, 400
+            return message(exc=str(e)), 400
         elif isinstance(e, CursorUtil.Error):
-            return {'msg': str(e)}, 404
+            return message(exc=str(e)), 404
         elif isinstance(e, HTTPException):
             return Response(status=e.code)
         elif isinstance(e, mysql.connector.Error):
             if e.errno == ER_DUP_ENTRY:
-                return {'msg': e.msg}, 409
+                return message(exc=e.msg), 409
             elif e.errno == ER_FIELD_SPECIFIED_TWICE:
                 key = self.field_specified_twice.match(e.msg)[1]
-                return {'msg': f'"{key}" specified twice'}, 400
+                return message(exc=f'"{key}" specified twice'), 400
             else:
                 logger.debug(str(e))
                 return Response(status=500)
         elif isinstance(e, MySQLUtil.Error):
-            return {'msg': str(e)}, 400
+            return message(exc=str(e)), 400
         elif isinstance(e, ValidationError):
-            return {'msg': e.args[0]}, 400
+            return message(exc=e.args[0]), 400
         else:
             logger.debug(str(e))
             return Response(status=500)
+
+
+def message(msg=None, exc=None, **kwargs):
+    kwargs['msg'] = msg
+    kwargs['exc'] = exc
+    if DBGConfig.on:
+        kwargs['echo'] = f'{request.method} {request.url}\n{request.headers}{request.data.decode()}'
+    return kwargs
 
 
 def hash_passwd(s: str):

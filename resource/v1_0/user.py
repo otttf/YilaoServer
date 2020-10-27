@@ -2,7 +2,7 @@ from flask import request, Response
 from flask_restful import Resource
 from schema import UserSchema, user_schema
 from wrap import _use
-from ..util import hash_passwd, mycursor, MySQLUtil
+from ..util import hash_passwd, message, mycursor, MySQLUtil
 from .validation import or_, passwd_validate, sms_validate, test, token_validate
 
 
@@ -38,7 +38,7 @@ class UserResource(Resource):
         intersection = secret_field & field
         if len(intersection) > 0:
             if field != secret_field:
-                return {'msg': 'common field and secret filed could not be given together'}, 400
+                return message(exc='common field and secret filed could not be given together'), 400
             if not test(or_(passwd_validate, sms_validate)):
                 return Response(status=401)
         else:

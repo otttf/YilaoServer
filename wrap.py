@@ -1,4 +1,4 @@
-from config.abstractconfig import Environment, GunicornConfig, MySQLConfig, RedisConfig
+from config.abstractconfig import DBGConfig, Environment, GunicornConfig, MySQLConfig, RedisConfig
 import mysql.connector.abstracts
 import mysql.connector.cursor
 import mysql.connector.cursor_cext
@@ -41,6 +41,8 @@ def connect_mysql(host=MySQLConfig.host, port=MySQLConfig.port, db: Optional[str
 
 
 class SmartCursor:
+    close_foreign_key = None
+
     def __init__(self, mysql_conn=None, autocommit=True, close_conn=True, **kwargs):
         if mysql_conn is None:
             mysql_conn = connect_mysql()
@@ -50,7 +52,11 @@ class SmartCursor:
         self.kwargs = kwargs
 
     def __enter__(self):
+        self.mysql_conn.ping(True)
         self.cursor = self.mysql_conn.cursor(**self.kwargs)
+        if DBGConfig.on and DBGConfig.MySQL.close_foreign_key != self.close_foreign_key:
+            self.cursor.execute('set foreign_key_checks = %s', (not DBGConfig.MySQL.close_foreign_key,))
+            self.close_foreign_key = DBGConfig.MySQL.close_foreign_key
         return self.cursor
 
     def __exit__(self, exc_type, exc_val, exc_tb):

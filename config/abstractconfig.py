@@ -5,12 +5,16 @@ from typing import List, Optional
 
 
 class DBGConfig:
+    class SMS:
+        close: bool = True
+        fixed: Optional[str] = '1234'
+        close_times_limit = True
+
+    class MySQL:
+        drop_before_run: bool = True
+        close_foreign_key: bool = False
+
     on = True
-    drop_database_before_run: bool = True
-    no_sms: bool = True
-    fixed_sms_code: Optional[str] = '1234'
-    close_foreign_key = True
-    close_message_limit = True
 
 
 class Environment:
@@ -89,14 +93,10 @@ class ResourceConfig:
 
     class SMS:
         expire = 300
-        limit = 5
+        times_limit = 5
         appid_list = [
             'df3b72a07a0a4fa1854a48b543690eab'
         ]
-
-    class Validation:
-        expire = 300
-        max_count = 3
 
 
 def get_secret():

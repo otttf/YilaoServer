@@ -5,7 +5,7 @@ from functools import wraps
 import json
 from sms import rand_code, send_code
 from uuid import uuid4
-from ..util import get_rcon, hash_passwd, mycursor
+from ..util import get_rcon, hash_passwd, message, mycursor
 from flask import request
 
 
@@ -28,14 +28,15 @@ class SMSResource(Resource):
         rcon = get_rcon()
         count = rcon.incr(count_name)
         if rcon.ttl(count_name) == -1:
-            rcon.expire(count_name, ResourceConfig.Validation.expire)
-        if (not DBGConfig.on or not DBGConfig.close_message_limit) and count > ResourceConfig.Validation.max_count:
-            return {'msg': 'frequent request'}, 400
+            rcon.expire(count_name, ResourceConfig.SMS.expire)
+        if (not DBGConfig.on or not DBGConfig.SMS.close_times_limit) and count > ResourceConfig.SMS.times_limit:
+            return message(exc='frequent request'), 400
         else:
             name = self.sms_name(**data)
             code = rand_code()
-            rcon.set(name, code, ex=ResourceConfig.Validation.expire)
+            rcon.set(name, code, ex=ResourceConfig.SMS.expire)
             send_code(data['mobile'], code)
+            return Response(status=201)
 
     @classmethod
     def validate(cls, func):
@@ -66,7 +67,7 @@ class PasswdResource(Resource):
                     c.execute('select sha256_passwd from user where mobile=%s limit 1', (mobile,))
                     res = c.fetchone()
                     if res is None:
-                        return {'msg': 'nonexistent user'}, 404
+                        return message(exc='nonexistent user'), 404
                     if res[0] == hash_passwd(passwd):
                         return func(*args, **kwargs)
             return Response(status=401)
@@ -113,7 +114,7 @@ class TokenResource(Resource):
                 'replace into token(user, appid, hex, privilege, deadline) '
                 'values (%s, %s, %s, %s, current_timestamp + interval %s second)',
                 (mobile, appid, uuid, privilege, deadline))
-        return {'token': uuid}, 201
+        return message(token=uuid), 201
 
     @classmethod
     def validate(cls, func):
