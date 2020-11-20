@@ -49,6 +49,7 @@ def connect_mysql(host=MySQLConfig.host, port=MySQLConfig.port, db: Optional[str
     for i in range(MySQLConfig.retry_times):
         try:
             socket.gethostbyname(MySQLConfig.host)
+            break
         except socket.gaierror:
             if logger:
                 logger.info(f'Connect time {i + 1}: cannot find host "{MySQLConfig.host}"')
@@ -108,6 +109,7 @@ def connect_redis(host=RedisConfig.host, port=RedisConfig.port, db=RedisConfig.d
     for i in range(RedisConfig.retry_times):
         try:
             socket.gethostbyname(RedisConfig.host)
+            break
         except socket.gaierror:
             if logger:
                 logger.info(f'Connect time {i + 1}: cannot find host "{RedisConfig.host}"')

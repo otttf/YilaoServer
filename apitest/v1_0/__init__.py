@@ -211,9 +211,11 @@ color = Color
 
 
 def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_code=get_code_template,
-                  get_passwd=get_passwd_template):
+                  get_passwd=get_passwd_template, proxies=None):
     global _prefix
     _prefix = prefix
+    if proxies is not None:
+        requests.api.request = partial(requests.api.request, proxies=proxies)
     logging.basicConfig(format='%(message)s', level=logging.DEBUG)
     logging.debug(f'{color.HEADER}usertest{color.ENDC}')
     logging.debug(f'{color.OKGREEN}signup{color.ENDC}')

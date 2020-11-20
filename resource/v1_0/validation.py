@@ -1,4 +1,4 @@
-from config.abstractconfig import DBGConfig, Environment, ResourceConfig, yl
+from config.abstractconfig import DBGConfig, ResourceConfig, yl
 from flask import Response
 from flask_restful import Resource
 from functools import wraps
@@ -139,6 +139,7 @@ class TokenResource(Resource):
                         res = res[0]
                         rcon.set(name, res, ex=ResourceConfig.Token.expire, nx=True)
             if res == token:
+
                 return func(*args, **kwargs)
             else:
                 return Response(status=401)

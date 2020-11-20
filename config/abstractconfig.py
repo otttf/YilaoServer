@@ -9,9 +9,9 @@ logger = logging
 
 class DBGConfig:
     class SMS:
-        close: bool = True
-        fixed: Optional[str] = '1234'
-        close_times_limit = True
+        close: bool = False
+        fixed: Optional[str] = None
+        close_times_limit = False
 
     class MySQL:
         drop_before_run: bool = True

@@ -10,6 +10,8 @@ from marshmallow.exceptions import ValidationError
 import mysql.connector
 from mysql.connector.errorcode import *
 import re
+import sys
+import traceback
 from werkzeug.exceptions import HTTPException
 from wrap import connect_mysql, connect_redis, SmartCursor
 
@@ -28,6 +30,14 @@ def mycursor(conn=None, autocommit=True, close_conn=False, buffered=None, raw=No
 
 def get_rcon():
     return real_get_rcon()
+
+
+def get_logger():
+    return logger
+
+
+def print_tb():
+    traceback.print_tb(sys.exc_info()[3], file=sys.stdout)
 
 
 class ArgsUtil:
@@ -207,6 +217,7 @@ class BaseApi(Api):
                 key = self.field_specified_twice.match(e.msg)[1]
                 return message(exc=f'"{key}" specified twice'), 400
             else:
+                print_tb()
                 logger.debug(str(e))
                 return Response(status=500)
         elif isinstance(e, MySQLUtil.Error):
@@ -214,6 +225,7 @@ class BaseApi(Api):
         elif isinstance(e, ValidationError):
             return message(exc=e.args[0]), 400
         else:
+            print_tb()
             logger.debug(str(e))
             return Response(status=500)
 

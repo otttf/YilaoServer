@@ -42,6 +42,7 @@ if MySQLConfig.init_database:
 mcon = connect_mysql(logger=logger)
 resource.util.get_mcon = lambda: mcon
 resource.util.real_get_rcon = lambda: rcon
+resource.util.logger = logger
 register_api_1_0(app)
 
 if __name__ == '__main__':

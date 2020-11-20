@@ -3,7 +3,7 @@ from wrap import _use
 from flask import request, Response
 from flask_restful import Resource
 import json
-from ..util import get_rcon, message, mycursor
+from ..util import get_rcon, print_tb, message, mycursor
 
 _use(DBGConfig)
 
@@ -35,4 +35,5 @@ class CMDResource(Resource):
         except self.UnknownCmdTypeError:
             return message(exc='unknown cmd type'), 400
         except Exception as e:
+            print_tb()
             return message(exc=str(e)), 500
