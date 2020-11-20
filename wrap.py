@@ -49,6 +49,7 @@ def connect_mysql(host=MySQLConfig.host, port=MySQLConfig.port, db: Optional[str
     for i in range(MySQLConfig.retry_times):
         try:
             socket.gethostbyname(MySQLConfig.host)
+            i += 1
             break
         except socket.gaierror:
             if logger:
@@ -61,7 +62,7 @@ def connect_mysql(host=MySQLConfig.host, port=MySQLConfig.port, db: Optional[str
             return conn
         except mysql.connector.Error:
             if logger:
-                logger.info(f'Connect Time {i}: connect failed')
+                logger.info(f'Connect Time {i + 1}: connect failed')
             sleep(MySQLConfig.retry_times)
     raise MySQLRetryError
 
@@ -109,6 +110,7 @@ def connect_redis(host=RedisConfig.host, port=RedisConfig.port, db=RedisConfig.d
     for i in range(RedisConfig.retry_times):
         try:
             socket.gethostbyname(RedisConfig.host)
+            i += 1
             break
         except socket.gaierror:
             if logger:
@@ -121,7 +123,7 @@ def connect_redis(host=RedisConfig.host, port=RedisConfig.port, db=RedisConfig.d
             return conn
         except redis.RedisError:
             if logger:
-                logger.info(f'Connect Time {i}: connect failed')
+                logger.info(f'Connect Time {i + 1}: connect failed')
             sleep(RedisConfig.retry_times)
     raise RedisRetryError
 

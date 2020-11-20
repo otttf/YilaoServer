@@ -13,3 +13,7 @@ services:
       MYSQL_ROOT_PASSWORD: root
   redis:
     image: redis
+  adminer:
+    image: adminer
+    ports:
+      - 8002:8080
