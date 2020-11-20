@@ -17,3 +17,9 @@ services:
     image: adminer
     ports:
       - 8002:8080
+  phpredisadmin:
+    image: erikdubbelboer/phpredisadmin
+    environment:
+      REDIS_1_HOST: redis
+    ports:
+      - 8003:80

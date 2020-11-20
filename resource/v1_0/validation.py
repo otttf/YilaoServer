@@ -24,6 +24,7 @@ class SMSResource(Resource):
         if appid not in ResourceConfig.SMS.appid_list:
             return Response(status=403)
 
+        # 阿里云本身已有信息限制功能，可以考虑改成IP限制
         count_name = yl(f"sms/count?mobile={data['mobile']}")
         rcon = get_rcon()
 
