@@ -2,11 +2,11 @@ FROM python:3.8
 
 # 搭建环境
 WORKDIR /app
-VOLUME /app/outcome
 COPY requirements.txt .
 RUN mkdir -p ~/.pip/ \
     && echo "[global]\nindex-url = https://mirrors.aliyun.com/pypi/simple/" > ~/.pip/pip.conf \
     && pip install -r requirements.txt
+VOLUME /app/run
 STOPSIGNAL SIGKILL
 
 # 复制项目文件

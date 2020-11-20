@@ -20,7 +20,7 @@ def register_api_1_0(app):
     name = yl('v1.0/docs_path', False)
     if Environment.rank() == 0:
         # td = tempfile.TemporaryDirectory()
-        site_dir = yl('outcome/site', False)  # td.name
+        site_dir = yl('run/site', False)  # td.name
         build.build(config.load_config(f'{__path__[0]}/docs/mkdocs.yml', site_dir=site_dir), dirty=True)
         send(get_rcon(), name, site_dir)
     else:
