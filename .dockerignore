@@ -1,0 +1,6 @@
+.git/
+.gitignore
+.idea/
+
+test.py
+outcome/

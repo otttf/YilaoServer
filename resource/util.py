@@ -15,13 +15,19 @@ from wrap import connect_mysql, connect_redis, SmartCursor
 
 logger = logging
 get_mcon = connect_mysql
-get_rcon = connect_redis
+real_get_rcon = connect_redis
 
 
-def mycursor(conn=get_mcon(), autocommit=True, close_conn=False, buffered=None, raw=None, prepared=None,
+def mycursor(conn=None, autocommit=True, close_conn=False, buffered=None, raw=None, prepared=None,
              cursor_class=None, dictionary=None, named_tuple=None):
+    if conn is None:
+        conn = get_mcon()
     return SmartCursor(conn, autocommit, close_conn, buffered=buffered, raw=raw, prepared=prepared,
                        cursor_class=cursor_class, dictionary=dictionary, named_tuple=named_tuple)
+
+
+def get_rcon():
+    return real_get_rcon()
 
 
 class ArgsUtil:
@@ -179,7 +185,6 @@ class MySQLUtil:
             c.execute("select st_polyfromtext('POLYGON((%s %s, %s %s, %s %s, %s %s, %s %s))')",
                       (left, top, right, top, right, bottom, left, bottom, left, top))
             return c.fetchone()
-
 
 
 class BaseApi(Api):

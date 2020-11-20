@@ -2,17 +2,14 @@ from .abstractconfig import *
 from wrap import Sync
 
 
-def impl(rcon):
+def impl(rcon, gunicorn):
     name = Environment.Name
-    prefix = f'{Environment.root_dir}/{os.getppid()}'
 
-    sms_aid = f'{prefix}/{name.sms_aid}'
-    sms_as = f'{prefix}/{name.sms_as}'
-    sms_rid = f'{prefix}/{name.sms_rid}'
-    sms_sn = f'{prefix}/{name.sms_sn}'
-    sms_tc = f'{prefix}/{name.sms_tc}'
-
-    gunicorn = rcon.get(sms_aid) is not None
+    sms_aid = yl(name.sms_aid, True)
+    sms_as = yl(name.sms_as, True)
+    sms_rid = yl(name.sms_rid, True)
+    sms_sn = yl(name.sms_sn, True)
+    sms_tc = yl(name.sms_tc, True)
 
     if gunicorn:
         with Sync(rcon) as s:

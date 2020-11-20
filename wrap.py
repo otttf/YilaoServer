@@ -1,4 +1,4 @@
-from config.abstractconfig import DBGConfig, Environment, GunicornConfig, MySQLConfig, RedisConfig
+from config.abstractconfig import DBGConfig, GunicornConfig, MySQLConfig, RedisConfig, yl
 import mysql.connector.abstracts
 import mysql.connector.cursor
 import mysql.connector.cursor_cext
@@ -6,6 +6,7 @@ import mysql.connector.errorcode
 import os
 import re
 import redis
+import socket
 import threading
 from time import sleep
 from typing import Optional
@@ -35,9 +36,33 @@ class UnhandledSignalError(mysql.connector.DatabaseError):
 mysql.connector.custom_error_exception(mysql.connector.errorcode.ER_SIGNAL_EXCEPTION, UnhandledSignalError)
 
 
+class MySQLRetryError(Exception):
+    pass
+
+
 def connect_mysql(host=MySQLConfig.host, port=MySQLConfig.port, db: Optional[str] = MySQLConfig.db,
-                  user=MySQLConfig.user, passwd=MySQLConfig.passwd, **kwargs):
-    return mysql.connector.connect(host=host, port=port, user=user, passwd=passwd, db=db, **kwargs)
+                  user=MySQLConfig.user, passwd=MySQLConfig.passwd, logger=None, **kwargs):
+    if logger:
+        logger.info('Connect to mysql server')
+
+    i = 0
+    for i in range(MySQLConfig.retry_times):
+        try:
+            socket.gethostbyname(MySQLConfig.host)
+        except socket.gaierror:
+            if logger:
+                logger.info(f'Connect time {i + 1}: cannot find host "{MySQLConfig.host}"')
+    for i in range(i, MySQLConfig.retry_times):
+        try:
+            conn = mysql.connector.connect(host=host, port=port, user=user, passwd=passwd, db=db, **kwargs)
+            if logger:
+                logger.info('Connect successfully')
+            return conn
+        except mysql.connector.Error:
+            if logger:
+                logger.info(f'Connect Time {i}: connect failed')
+            sleep(MySQLConfig.retry_times)
+    raise MySQLRetryError
 
 
 class SmartCursor:
@@ -70,9 +95,33 @@ class SmartCursor:
             self.mysql_conn.close()
 
 
+class RedisRetryError(Exception):
+    pass
+
+
 def connect_redis(host=RedisConfig.host, port=RedisConfig.port, db=RedisConfig.db, passwd=RedisConfig.passwd,
-                  decode_responses=True, **kwargs):
-    return redis.Redis(host, port, db, passwd, decode_responses=decode_responses, **kwargs)
+                  decode_responses=True, logger=None, **kwargs):
+    if logger:
+        logger.info('Connect to redis server')
+
+    i = 0
+    for i in range(RedisConfig.retry_times):
+        try:
+            socket.gethostbyname(RedisConfig.host)
+        except socket.gaierror:
+            if logger:
+                logger.info(f'Connect time {i + 1}: cannot find host "{RedisConfig.host}"')
+    for i in range(i, RedisConfig.retry_times):
+        try:
+            conn = redis.Redis(host, port, db, passwd, decode_responses=decode_responses, **kwargs)
+            if logger:
+                logger.info('Connect successfully')
+            return conn
+        except redis.RedisError:
+            if logger:
+                logger.info(f'Connect Time {i}: connect failed')
+            sleep(RedisConfig.retry_times)
+    raise RedisRetryError
 
 
 class Sync:
@@ -87,7 +136,7 @@ class Sync:
 
     def __init__(self, redis_conn, exclude_error: Optional[set] = None):
         self.redis_conn = redis_conn
-        self.prefix = f'{Environment.root_dir}/{os.getppid()}/{Sync.__name__}'
+        self.prefix = yl(Sync.__name__, True)
         self.finish = f'{self.prefix}/finish'
         self.members = f'{self.prefix}/members'
         self.error = f'{self.prefix}/error'

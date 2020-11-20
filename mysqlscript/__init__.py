@@ -8,7 +8,7 @@ class IterDB:
     def __init__(self, require_version, script, version):
         self.require_version = require_version
         self.version = version
-        with open(f'{__path__[0]}{os.sep}{script}.sql') as f:
+        with open(f'{__path__[0]}{os.sep}{script}.sql', encoding='utf8') as f:
             self.script = f.read()
 
 

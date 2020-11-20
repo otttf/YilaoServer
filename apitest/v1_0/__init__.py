@@ -2,7 +2,6 @@ from functools import lru_cache, partial
 import inspect
 import logging
 import re
-from resource.v1_0.debug import PythonDebugResource
 from resource.v1_0.order import OrderListResource, OrderResource
 from resource.v1_0.user import UserResource
 from resource.v1_0.validation import PasswdResource, SMSResource, TokenResource

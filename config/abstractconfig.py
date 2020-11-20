@@ -1,7 +1,10 @@
 from getpass import getpass
 import json
+import logging
 import os
 from typing import List, Optional
+
+logger = logging
 
 
 class DBGConfig:
@@ -54,18 +57,20 @@ class LogConfig:
 
 
 class MySQLConfig:
-    host: str = 'localhost'
+    host: str = 'mysql'
     port: int = 3306
-    user: str = 'admin'
-    db: str = 'Yilao'
-    passwd: Optional[str] = 'admin'
+    user: str = 'root'
+    db: str = 'yilao'
+    passwd: Optional[str] = 'root'
     scripts: List[str] = ['', '1.0']
     init_database: bool = True
+    retry_times: int = 10
+    retry_interval: float = 1
 
 
 class ServerConfig:
     host: str = '0.0.0.0'
-    port: int = 8080
+    port: int = 8001
 
 
 class SMSConfig:
@@ -77,10 +82,12 @@ class SMSConfig:
 
 
 class RedisConfig:
-    host = 'localhost'
+    host = 'redis'
     port = 6379
     db = 0
     passwd = None
+    retry_times: int = 10
+    retry_interval: float = 1
 
 
 class ResourceConfig:
@@ -99,6 +106,13 @@ class ResourceConfig:
         ]
 
 
+ppid = os.getppid()
+
+
+def yl(s, diff_launch=False):
+    return f'{Environment.root_dir}/{ppid}/{s}' if diff_launch else f'{Environment.root_dir}/{s}'
+
+
 def get_secret():
     try:
         with open(f'{os.path.dirname(os.path.abspath(__file__))}{os.sep}secret.json') as f:
@@ -107,15 +121,16 @@ def get_secret():
         if Environment.Name.sms_as not in secret:
             secret[Environment.Name.sms_as] = getpass('请输入阿里云RAM用户的accessSecret')
         return secret
-    except FileNotFoundError as e:
-        print('required file "secret.json" template:')
+    except FileNotFoundError:
+        logger.info('required file "secret.json" template:')
         print(json.dumps({
-            Environment.Name.sms_aid: "str",
+            Environment.Name.sms_aid: "Optional[str]",
             Environment.Name.sms_as: "Optional[str]",
-            Environment.Name.sms_rid: "str",
-            Environment.Name.sms_sn: "str",
-            Environment.Name.sms_tc: "str"
+            Environment.Name.sms_rid: "Optional[str]",
+            Environment.Name.sms_sn: "Optional[str]",
+            Environment.Name.sms_tc: "Optional[str]"
         }, indent=4))
+        logger.info("what's more, see the link: https://dysms.console.aliyun.com/dysms.htm#/quickStart")
         exit(0)
     except KeyboardInterrupt:
         print()

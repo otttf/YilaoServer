@@ -1,11 +1,10 @@
-from config.abstractconfig import DBGConfig, Environment
+from config.abstractconfig import DBGConfig, Environment, yl
 from flask import send_from_directory, redirect
 from mkdocs import config
 from mkdocs.__main__ import build
 import os
 # import tempfile
 from wrap import send, recv
-from .debug import PythonDebugResource
 from .order import OrderListResource, OrderResource
 from .user import UserResource
 from .validation import PasswdResource, SMSResource, TokenResource
@@ -18,10 +17,10 @@ class Api1o0(BaseApi):
 
 def register_api_1_0(app):
     api = Api1o0(app)
-    name = f'{Environment.root_dir}/{os.getppid()}/v1.0/docs_path'
+    name = yl('v1.0/docs_path', False)
     if Environment.rank() == 0:
         # td = tempfile.TemporaryDirectory()
-        site_dir = f'{Environment.root_dir}/outcome/site'  # td.name
+        site_dir = yl('outcome/site', False)  # td.name
         build.build(config.load_config(f'{__path__[0]}/docs/mkdocs.yml', site_dir=site_dir), dirty=True)
         send(get_rcon(), name, site_dir)
     else:
@@ -41,6 +40,6 @@ def register_api_1_0(app):
     api.add_resource(TokenResource, '/v1.0/users/<int:mobile>/tokens')
     api.add_resource(UserResource, '/v1.0/users/<int:mobile>')
     if DBGConfig.on:
-        api.add_resource(PythonDebugResource, '/v1.0/debug')
+        pass
 
     return api

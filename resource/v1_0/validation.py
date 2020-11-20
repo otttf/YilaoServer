@@ -1,4 +1,4 @@
-from config.abstractconfig import DBGConfig, Environment, ResourceConfig
+from config.abstractconfig import DBGConfig, Environment, ResourceConfig, yl
 from flask import Response
 from flask_restful import Resource
 from functools import wraps
@@ -16,7 +16,7 @@ class SMSResource(Resource):
         mobile = str(mobile)
         method = str(method).upper()
         base_url = str(base_url).lower()
-        return f'{Environment.root_dir}/sms?{appid=}&{mobile=}&{method=}&{base_url=}'
+        return yl(f'sms?{appid=}&{mobile=}&{method=}&{base_url=}')
 
     def post(self):
         data = json.loads(request.data)
@@ -24,11 +24,14 @@ class SMSResource(Resource):
         if appid not in ResourceConfig.SMS.appid_list:
             return Response(status=403)
 
-        count_name = f"{Environment.root_dir}/sms/count?mobile={data['mobile']}"
+        count_name = yl(f"sms/count?mobile={data['mobile']}")
         rcon = get_rcon()
+
+        # 无法确保原子性
         count = rcon.incr(count_name)
         if rcon.ttl(count_name) == -1:
             rcon.expire(count_name, ResourceConfig.SMS.expire)
+
         if (not DBGConfig.on or not DBGConfig.SMS.close_times_limit) and count > ResourceConfig.SMS.times_limit:
             return message(exc='frequent request'), 400
         else:
@@ -101,7 +104,7 @@ class TokenResource(Resource):
     @staticmethod
     def token_name(mobile, appid):
         appid = str(appid).lower()
-        return f'{Environment.root_dir}/mobile/{mobile}/token?{appid=}'
+        return yl(f'mobile/{mobile}/token?{appid=}')
 
     @or_(SMSResource.validate, PasswdResource.validate)
     def post(self, mobile):

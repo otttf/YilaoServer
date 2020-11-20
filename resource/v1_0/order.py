@@ -6,7 +6,6 @@ from wrap import _use
 from ..util import ArgsUtil, BodyUtil, CursorUtil, hash_passwd, mycursor, MySQLUtil
 from .validation import or_, passwd_validate, sms_validate, test, token_validate
 
-
 class PublicOrderListResource(Resource):
     def get(self):
         _use(self)
