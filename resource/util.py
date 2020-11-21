@@ -127,6 +127,10 @@ class CursorUtil:
         return [dict(zip(column_name, it)) for it in rows]
 
 
+class GeoTypeUtil:
+    pass
+
+
 class MySQLUtil:
     class Error(Exception):
         pass
@@ -168,16 +172,10 @@ class MySQLUtil:
 
     @staticmethod
     def div_point(di, name, point_pattern=re.compile(r'POINT\(([0-9.]+) ([0-9.]+)\)')):
-        point = di.pop(name)
-        ###
-        di[f'{name}_longitude'] = 0
-        di[f'{name}_latitude'] = 90
-        return
-        ###
-        with mycursor(autocommit=False) as c:
-            c.execute('select st_astext(%s)', (point,))
-            res = point_pattern.match(c.fetchone()[0])
-            longitude, latitude = res[1], res[2]
+        di.pop(name)
+        point = di.pop(f'st_astext({name})')
+        res = point_pattern.match(point)
+        longitude, latitude = res[1], res[2]
         if longitude == '0' and latitude == '90':
             longitude = None
             latitude = None

@@ -10,7 +10,7 @@ class UserResource(Resource):
     def get(self, mobile):
         _use(self)
         with mycursor(dictionary=True) as c:
-            c.execute('select * from user where mobile=%s limit 1', (mobile,))
+            c.execute('select *, st_astext(default_location) from user where mobile=%s limit 1', (mobile,))
             res = c.fetchone()
             if res is None:
                 return Response(status=404)

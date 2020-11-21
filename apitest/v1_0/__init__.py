@@ -1,5 +1,6 @@
 from functools import lru_cache, partial
 import inspect
+import json
 import logging
 import re
 from resource.v1_0.order import OrderListResource, OrderResource
@@ -12,6 +13,8 @@ from typing import Optional
 _prefix: str
 default_appid = 'df3b72a07a0a4fa1854a48b543690eab'
 args_pattern = re.compile(rf'^[^()]+\((.*)\)$')
+loglevel = 11
+header_width = 50
 
 
 def _use(_): pass
@@ -39,9 +42,17 @@ class CheckError(Error):
 
 
 def check(resp):
+    logmsg = (f"{' REQUEST '.center(header_width, '=')}\n"
+              f'{resp.request.method} {resp.request.url}\n')
+    if resp.request.body:
+        logmsg += f'\n{json.dumps(json.loads(resp.request.body.decode()), indent=4)}\n'
+    logmsg += f"{' RESPONSE '.center(header_width, '=')}\n"
+    logmsg += f'{resp.status_code} {resp.reason}\n'
+    if resp.content:
+        logmsg += f'\n{json.dumps(json.loads(resp.content.decode()), indent=4)}\n'
+    logmsg += f"{' END '.center(header_width, '=')}"
+    logging.log(loglevel, logmsg)
     if resp.status_code // 100 != 2:
-        logging.debug(f'status={resp.status_code}\n'
-                      f'body={resp.content.decode()}')
         raise CheckError(resp.url, resp.status_code, resp.content.decode())
 
 
@@ -190,18 +201,6 @@ def reset_passwd_by_code(mobile, get_code, get_new_passwd):
     UserTest.patch(mobile, code=get_code(), appid=default_appid, new_passwd=get_new_passwd())
 
 
-def log_user_by_code(mobile, get_code):
-    token = login_by_code(mobile, get_code)
-    logging.debug(f'{token=}')
-    logging.debug(f'{UserTest.get(mobile, token)}\n')
-
-
-def log_user_by_passwd(mobile, passwd):
-    token = login_by_passwd(mobile, passwd)
-    logging.debug(f'{token=}')
-    logging.debug(f'{UserTest.get(mobile, token)}\n')
-
-
 def get_code_template():
     return input(r'input your code(^\d{4}$): ')
 
@@ -228,7 +227,8 @@ color = Color
 
 def header(msg, i=0):
     header_color = [color.HEADER, color.OKGREEN, color.OKBLUE]
-    logging.debug(f'{header_color[i]}{msg}{color.ENDC}')
+    header_str = f' {header_color[i]}{msg}{color.ENDC} '
+    logging.log(loglevel, header_str.center(header_width + 9, '*'))
 
 
 def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_code=get_code_template,
@@ -237,34 +237,54 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
     _prefix = prefix
     if proxies is not None:
         requests.api.request = partial(requests.api.request, proxies=proxies)
-    logging.basicConfig(format='%(message)s', level=logging.DEBUG, stream=sys.stdout)
-    header('usertest')
-    header('signup', 1)
+    logging.basicConfig(format='%(message)s', level=loglevel, stream=sys.stdout)
+
     try:
-        signup(mobile, get_code, partial(get_passwd, 1))
-        logging.debug('Signup successfully\n')
-    except Error as e:
-        logging.debug(f'{e}\n')
+        header('Usertest')
+        header('Test Signup', 1)
+        logging.log(loglevel, '')
+        try:
+            signup(mobile, get_code, partial(get_passwd, 1))
+            logging.log(loglevel, 'Signup successfully\n')
+        except Error as e:
+            logging.log(loglevel, f'{e}\n')
+        logging.log(loglevel, '')
 
-    # user login
-    header('login', 1)
-    header('by passwd', 2)
-    log_user_by_passwd(mobile, get_passwd(1))
-    header('by code', 2)
-    log_user_by_code(mobile, get_code)
+        # user login
+        header('Test Login', 1)
+        header('By passwd', 2)
+        logging.log(loglevel, '')
+        token = login_by_passwd(mobile, get_passwd(1))
+        UserTest.get(mobile, token)
+        logging.log(loglevel, '')
+        header('By code', 2)
+        logging.log(loglevel, '')
+        token = login_by_code(mobile, get_code)
+        UserTest.get(mobile, token)
+        logging.log(loglevel, '')
 
-    # user secret patch
-    header('patch passwd', 1)
-    header('by old', 2)
-    reset_passwd_by_old(mobile, partial(get_passwd, 1), partial(get_passwd, 2))
-    log_user_by_passwd(mobile, get_passwd(2))
-    header('by code', 2)
-    reset_passwd_by_code(mobile, get_code, partial(get_passwd, 1))
-    log_user_by_passwd(mobile, get_passwd(1))
+        # user secret patch
+        header('Test Patch passwd', 1)
+        header('By old', 2)
+        logging.log(loglevel, '')
+        reset_passwd_by_old(mobile, partial(get_passwd, 1), partial(get_passwd, 2))
+        token = login_by_passwd(mobile, get_passwd(2))
+        UserTest.get(mobile, token)
+        logging.log(loglevel, '')
+        header('By code', 2)
+        logging.log(loglevel, '')
+        reset_passwd_by_code(mobile, get_code, partial(get_passwd, 1))
+        token = login_by_passwd(mobile, get_passwd(1))
+        UserTest.get(mobile, token)
+        logging.log(loglevel, '')
 
-    # user common patch
-    header('patch common', 1)
-    header('name', 2)
-    token = login_by_passwd(mobile, get_passwd(1))
-    UserTest.patch(mobile, token, appid=default_appid, nickname='new name')
-    logging.debug(f'{UserTest.get(mobile, token)}\n')
+        # user common patch
+        header('Test patch common', 1)
+        header('Patch name', 2)
+        logging.log(loglevel, '')
+        token = login_by_passwd(mobile, get_passwd(1))
+        UserTest.patch(mobile, token, appid=default_appid, nickname='new name')
+        UserTest.get(mobile, token)
+        logging.log(loglevel, '')
+    except CheckError:
+        logging.log(loglevel, 'Failed to pass the test')
