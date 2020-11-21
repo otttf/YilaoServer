@@ -9,7 +9,7 @@ logger = logging
 
 class DBGConfig:
     class SMS:
-        close: bool = True
+        close: bool = False
         fixed: Optional[str] = '1234'
         close_times_limit = True
 
@@ -57,7 +57,7 @@ class LogConfig:
 
 
 class MySQLConfig:
-    host: str = '127.0.0.1'
+    host: str = 'mysql'
     port: int = 3306
     user: str = 'root'
     db: str = 'yilao'
@@ -82,7 +82,7 @@ class SMSConfig:
 
 
 class RedisConfig:
-    host = '127.0.0.1'
+    host = 'redis'
     port = 6379
     db = 0
     passwd = None

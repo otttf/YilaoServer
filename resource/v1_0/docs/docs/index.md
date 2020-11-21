@@ -113,7 +113,7 @@ POST http://api.yilao.tk:5000/v1.0/users/$mobile/tokens?appid=df3b72a07a0a4fa185
 PATCH http://api.yilao.tk:5000/v1.0/users/$mobile?appid=df3b72a07a0a4fa1854a48b543690eab&token=$token
 
 {
-	$key1: $value1,
+	$key1: $value1, 
 	$key2: $value2,
 	...
 }
