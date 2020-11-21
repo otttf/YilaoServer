@@ -9,12 +9,12 @@ logger = logging
 
 class DBGConfig:
     class SMS:
-        close: bool = False
-        fixed: Optional[str] = None
-        close_times_limit = False
+        close: bool = True
+        fixed: Optional[str] = '1234'
+        close_times_limit = True
 
     class MySQL:
-        drop_before_run: bool = True
+        drop_before_run: bool = False
         close_foreign_key: bool = False
 
     on = True
@@ -57,7 +57,7 @@ class LogConfig:
 
 
 class MySQLConfig:
-    host: str = 'mysql'
+    host: str = '127.0.0.1'
     port: int = 3306
     user: str = 'root'
     db: str = 'yilao'
@@ -82,7 +82,7 @@ class SMSConfig:
 
 
 class RedisConfig:
-    host = 'redis'
+    host = '127.0.0.1'
     port = 6379
     db = 0
     passwd = None

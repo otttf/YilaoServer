@@ -6,6 +6,7 @@ from resource.v1_0.order import OrderListResource, OrderResource
 from resource.v1_0.user import UserResource
 from resource.v1_0.validation import PasswdResource, SMSResource, TokenResource
 import requests
+import sys
 from typing import Optional
 
 _prefix: str
@@ -39,6 +40,8 @@ class CheckError(Error):
 
 def check(resp):
     if resp.status_code // 100 != 2:
+        logging.debug(f'status={resp.status_code}\n'
+                      f'body={resp.content.decode()}')
         raise CheckError(resp.url, resp.status_code, resp.content.decode())
 
 
@@ -95,7 +98,7 @@ class TokenTest:
 
     @classmethod
     @link(TokenResource.post)
-    def post(cls, mobile, passwd=None, code=None, appid=None):
+    def post(cls, mobile, passwd=None, code=None, appid=default_appid):
         url = cls.url(mobile)
         params = {}
         set_field(params, passwd)
@@ -174,6 +177,7 @@ def login_by_passwd(mobile, passwd):
 
 
 def login_by_code(mobile, get_code):
+    SMSTest.post(mobile, 'POST', TokenTest.url(mobile))
     return TokenTest.post(mobile, code=get_code(), appid=default_appid)
 
 
@@ -184,6 +188,18 @@ def reset_passwd_by_old(mobile, get_old_passwd, get_new_passwd):
 def reset_passwd_by_code(mobile, get_code, get_new_passwd):
     SMSTest.post(mobile, 'PATCH', UserTest.url(mobile))
     UserTest.patch(mobile, code=get_code(), appid=default_appid, new_passwd=get_new_passwd())
+
+
+def log_user_by_code(mobile, get_code):
+    token = login_by_code(mobile, get_code)
+    logging.debug(f'{token=}')
+    logging.debug(f'{UserTest.get(mobile, token)}\n')
+
+
+def log_user_by_passwd(mobile, passwd):
+    token = login_by_passwd(mobile, passwd)
+    logging.debug(f'{token=}')
+    logging.debug(f'{UserTest.get(mobile, token)}\n')
 
 
 def get_code_template():
@@ -210,20 +226,45 @@ class Color:
 color = Color
 
 
+def header(msg, i=0):
+    header_color = [color.HEADER, color.OKGREEN, color.OKBLUE]
+    logging.debug(f'{header_color[i]}{msg}{color.ENDC}')
+
+
 def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_code=get_code_template,
                   get_passwd=get_passwd_template, proxies=None):
     global _prefix
     _prefix = prefix
     if proxies is not None:
         requests.api.request = partial(requests.api.request, proxies=proxies)
-    logging.basicConfig(format='%(message)s', level=logging.DEBUG)
-    logging.debug(f'{color.HEADER}usertest{color.ENDC}')
-    logging.debug(f'{color.OKGREEN}signup{color.ENDC}')
-    signup(mobile, get_code, partial(get_passwd, 1))
+    logging.basicConfig(format='%(message)s', level=logging.DEBUG, stream=sys.stdout)
+    header('usertest')
+    header('signup', 1)
+    try:
+        signup(mobile, get_code, partial(get_passwd, 1))
+        logging.debug('Signup successfully\n')
+    except Error as e:
+        logging.debug(f'{e}\n')
 
     # user login
-    # logging.debug(f'{color.HEADER}')
-    # token = login_by_passwd(mobile, partial(get_passwd, 1))
-    # logging.debug(UserTest.get(mobile, token))
-    # new_token = login_by_code(mobile, get_code)
-    # logging.debug(UserTest.get(mobile, new_token))
+    header('login', 1)
+    header('by passwd', 2)
+    log_user_by_passwd(mobile, get_passwd(1))
+    header('by code', 2)
+    log_user_by_code(mobile, get_code)
+
+    # user secret patch
+    header('patch passwd', 1)
+    header('by old', 2)
+    reset_passwd_by_old(mobile, partial(get_passwd, 1), partial(get_passwd, 2))
+    log_user_by_passwd(mobile, get_passwd(2))
+    header('by code', 2)
+    reset_passwd_by_code(mobile, get_code, partial(get_passwd, 1))
+    log_user_by_passwd(mobile, get_passwd(1))
+
+    # user common patch
+    header('patch common', 1)
+    header('name', 2)
+    token = login_by_passwd(mobile, get_passwd(1))
+    UserTest.patch(mobile, token, appid=default_appid, nickname='new name')
+    logging.debug(f'{UserTest.get(mobile, token)}\n')

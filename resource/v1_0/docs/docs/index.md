@@ -40,7 +40,7 @@ Content-Type: application/json
 
 ##### 1. 发送验证码
 
-**$method**=`GET`
+**$method**=`PUT`
 
 **$base_url**=`http://api.yilao.tk:5000/v1.0/users/$mobile`
 
@@ -90,7 +90,7 @@ POST http://api.yilao.tk:5000/v1.0/users/$mobile/tokens?appid=df3b72a07a0a4fa185
 ### 通过密码
 
 ```
-POST http://api.yilao.tk:5000/v1.0/users/$mobile/tokens?passwd=$passwd
+POST http://api.yilao.tk:5000/v1.0/users/$mobile/tokens?appid=df3b72a07a0a4fa1854a48b543690eab&passwd=$passwd
 ```
 
 `$passwd`**：用户密码**

@@ -14,7 +14,7 @@ class UserResource(Resource):
             res = c.fetchone()
             if res is None:
                 return Response(status=404)
-            if not test(token_validate):
+            if not test(token_validate, mobile=mobile):
                 return Response(status=401)
             MySQLUtil.div_point(res, 'default_location')
             return user_schema.dump(res)
@@ -39,10 +39,10 @@ class UserResource(Resource):
         if len(intersection) > 0:
             if field != secret_field:
                 return message(exc='common field and secret filed could not be given together'), 400
-            if not test(or_(passwd_validate, sms_validate)):
+            if not test(or_(passwd_validate, sms_validate), mobile=mobile):
                 return Response(status=401)
         else:
-            if not test(token_validate):
+            if not test(token_validate, mobile=mobile):
                 return Response(status=401)
 
         if 'passwd' in new_data:

@@ -169,6 +169,11 @@ class MySQLUtil:
     @staticmethod
     def div_point(di, name, point_pattern=re.compile(r'POINT\(([0-9.]+) ([0-9.]+)\)')):
         point = di.pop(name)
+        ###
+        di[f'{name}_longitude'] = 0
+        di[f'{name}_latitude'] = 90
+        return
+        ###
         with mycursor(autocommit=False) as c:
             c.execute('select st_astext(%s)', (point,))
             res = point_pattern.match(c.fetchone()[0])

@@ -5,7 +5,7 @@ from functools import wraps
 import json
 from sms import rand_code, send_code
 from uuid import uuid4
-from ..util import get_rcon, hash_passwd, message, mycursor
+from ..util import get_logger, get_rcon, hash_passwd, message, mycursor
 from flask import request
 
 
@@ -40,6 +40,9 @@ class SMSResource(Resource):
             code = rand_code()
             rcon.set(name, code, ex=ResourceConfig.SMS.expire)
             send_code(data['mobile'], code)
+            get_logger().debug(f'Send code:\n'
+                               f'{name=}\n'
+                               f'{code=}\n')
             return Response(status=201)
 
     @classmethod
@@ -51,9 +54,15 @@ class SMSResource(Resource):
             name = cls.sms_name(appid, mobile, request.method, request.base_url)
             code = request.args.get('code')
             rcon = get_rcon()
-            if rcon.get(name) == code:
+            real_code = rcon.get(name)
+            if real_code == code:
                 return func(*args, **kwargs)
             else:
+                get_logger().debug(f'Failed to pass SMS validate:\n'
+                                   f'{mobile=}\n'
+                                   f'{name=}\n'
+                                   f'{code=}\n'
+                                   f'{real_code=}\n')
                 return Response(status=401)
 
         return wrapper
@@ -111,13 +120,12 @@ class TokenResource(Resource):
     def post(self, mobile):
         appid = request.args.get('appid')
         uuid = uuid4().hex
-        privilege = ''
-        deadline = None
         with mycursor() as c:
+            get_rcon().delete(self.token_name(mobile, appid))
             c.execute(
-                'replace into token(user, appid, hex, privilege, deadline) '
-                'values (%s, %s, %s, %s, current_timestamp + interval %s second)',
-                (mobile, appid, uuid, privilege, deadline))
+                'replace into token(user, appid, hex, deadline) '
+                'values (%s, %s, %s, current_timestamp + interval %s second)',
+                (mobile, appid, uuid, ResourceConfig.Token.expire))
         return message(token=uuid), 201
 
     @classmethod
@@ -140,7 +148,6 @@ class TokenResource(Resource):
                         res = res[0]
                         rcon.set(name, res, ex=ResourceConfig.Token.expire, nx=True)
             if res == token:
-
                 return func(*args, **kwargs)
             else:
                 return Response(status=401)
@@ -153,6 +160,6 @@ passwd_validate = PasswdResource.validate
 token_validate = TokenResource.validate
 
 
-def test(validate_func):
-    res = validate_func(lambda: True)()
+def test(validate_func, **kwargs):
+    res = validate_func(lambda *args, **kwargs_: True)(**kwargs)
     return res is True
