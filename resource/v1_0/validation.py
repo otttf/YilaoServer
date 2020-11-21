@@ -22,7 +22,7 @@ class SMSResource(Resource):
         data = json.loads(request.data)
         appid = data.get('appid')
         if appid not in ResourceConfig.SMS.appid_list:
-            return Response(status=403)
+            return message(exc='Invalid appid'), 400
 
         # 阿里云本身已有信息限制功能，可以考虑改成IP限制
         count_name = yl(f"sms/count?mobile={data['mobile']}")
@@ -119,6 +119,8 @@ class TokenResource(Resource):
     @or_(SMSResource.validate, PasswdResource.validate)
     def post(self, mobile):
         appid = request.args.get('appid')
+        if appid is None:
+            return message(exc='appid is null'), 400
         uuid = uuid4().hex
         with mycursor() as c:
             get_rcon().delete(self.token_name(mobile, appid))

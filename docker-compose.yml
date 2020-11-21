@@ -22,7 +22,9 @@ services:
     ports:
       - 8002:8080
   phpredisadmin:
-    image: erikdubbelboer/phpredisadmin
+    build:
+      dockerfile: PhpredisadminDockerfile
+      context: .
     environment:
       REDIS_1_HOST: redis
     ports:
