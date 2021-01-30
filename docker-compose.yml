@@ -12,11 +12,11 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: root
     ports:
-    - 33061:3306
+      - 33061:3306
   redis:
     image: redis
     ports:
-    - 63791:6379
+      - 63791:6379
   adminer:
     image: adminer
     ports:
