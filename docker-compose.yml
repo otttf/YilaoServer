@@ -20,7 +20,7 @@ services:
   adminer:
     image: adminer
     ports:
-      - 8002:8080
+      - 18002:8080
   phpredisadmin:
     build:
       dockerfile: PhpredisadminDockerfile
@@ -28,4 +28,4 @@ services:
     environment:
       REDIS_1_HOST: redis
     ports:
-      - 8003:80
+      - 18003:80

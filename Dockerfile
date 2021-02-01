@@ -5,6 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN mkdir -p ~/.pip/ \
     && echo "[global]\nindex-url = https://mirrors.aliyun.com/pypi/simple/" > ~/.pip/pip.conf \
+    && pip install --upgrade pip \
     && pip install -r requirements.txt
 VOLUME /app/run
 STOPSIGNAL SIGKILL

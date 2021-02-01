@@ -5,7 +5,7 @@ from mkdocs.__main__ import build
 import os
 # import tempfile
 from wrap import send, recv
-from .order import OrderListResource, OrderResource
+from .order import PublicOrderListResource, PublicOrderResource, OrderResource
 from .user import UserResource
 from .validation import PasswdResource, SMSResource, TokenResource
 from ..util import BaseApi, get_rcon
@@ -34,8 +34,9 @@ def register_api_1_0(app):
     def get_doc(filename):
         return send_from_directory(site_dir, filename)
 
-    api.add_resource(OrderListResource, '/v1.0/users/<int:mobile>/orders')
     api.add_resource(OrderResource, '/v1.0/users/<int:mobile>/orders/<int:order_id>')
+    api.add_resource(PublicOrderResource, '/v1.0/public_orders/<int:order_id>')
+    api.add_resource(PublicOrderListResource, '/v1.0/public_orders')
     api.add_resource(SMSResource, '/v1.0/sms')
     api.add_resource(TokenResource, '/v1.0/users/<int:mobile>/tokens')
     api.add_resource(UserResource, '/v1.0/users/<int:mobile>')

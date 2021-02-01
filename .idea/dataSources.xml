@@ -1,17 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="@localhost" uuid="c5b729a3-639e-4319-8d4d-c5461946d536">
+    <data-source source="LOCAL" name="yilao@localhost" uuid="4002c5e8-c322-44d6-bf77-0c9ef36fb906">
       <driver-ref>mysql.8</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
-      <jdbc-url>jdbc:mysql://localhost:3306</jdbc-url>
-    </data-source>
-    <data-source source="LOCAL" name="MySQL - yilao@api.yilao.tk" uuid="d079ea21-98b3-4c86-9b2d-cff2b0fa0636">
-      <driver-ref>mysql.8</driver-ref>
-      <synchronize>true</synchronize>
-      <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>
-      <jdbc-url>jdbc:mysql://api.yilao.tk:33061/yilao</jdbc-url>
+      <jdbc-url>jdbc:mysql://localhost:33061/yilao</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>
 </project>

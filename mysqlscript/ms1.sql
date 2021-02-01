@@ -136,6 +136,6 @@ create table task
     foreign key (photo) references resource (id),
     foreign key (`order`) references `order` (id),
     spatial key (destination),
-    constraint task_chk_tangible check (tangible is not null or destination != point(0, 90)),
+    constraint task_chk_tangible check (tangible or destination != point(0, 90)),
     constraint task_chk_locate check (destination != point(0, 90) or address is null)
 );

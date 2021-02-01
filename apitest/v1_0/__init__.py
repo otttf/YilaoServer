@@ -3,9 +3,6 @@ import inspect
 import json
 import logging
 import re
-from resource.v1_0.order import OrderListResource, OrderResource
-from resource.v1_0.user import UserResource
-from resource.v1_0.validation import PasswdResource, SMSResource, TokenResource
 import requests
 import sys
 from typing import Optional
@@ -20,6 +17,27 @@ header_width = 50
 def _use(_): pass
 
 
+class HaveAll:
+    def __getattr__(self, item):
+        return None
+
+
+# mysql-connector-python可能会出现ImportError，所以仅尝试插入
+try:
+    from resource.v1_0.order import OrderListResource, OrderResource
+    from resource.v1_0.user import UserResource
+    from resource.v1_0.validation import PasswdResource, SMSResource, TokenResource
+except ImportError:
+    has_all = HaveAll()
+    OrderListResource = has_all
+    OrderResource = has_all
+    UserResource = has_all
+    PasswdResource = has_all
+    SMSResource = has_all
+    TokenResource = has_all
+
+
+# 链接到resource
 def link(*args):
     _use(args)
 
