@@ -8,8 +8,10 @@ logger = logging
 
 
 class DBGConfig:
+    hash_passwd: bool = False
+
     class SMS:
-        close: bool = False
+        close: bool = True
         fixed: Optional[str] = '1234'
         close_times_limit = True
 

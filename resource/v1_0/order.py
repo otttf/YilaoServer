@@ -38,7 +38,7 @@ class OrderListResource(Resource):
     def handle(order: dict):
         MySQLUtil.div_point(order, 'destination')
         with mycursor(autocommit=False) as c:
-            c.execute('select *, st_astext(destination) from task where `order`=?', order['id'])
+            c.execute('select *, st_astext(destination) from task where `order`=%s', order['id'])
             order['tasks'] = c.fetchall()
             for task in order['tasks']:
                 MySQLUtil.div_point(task, 'destination')
@@ -48,7 +48,8 @@ class OrderListResource(Resource):
         """获取和自己相关的订单，自己是发布者或者自己是执行者"""
         with mycursor() as c:
             # TODO 加入时间筛选
-            c.execute('select *, st_astext(destination) from `order` where from_user=? or executor=?', (mobile, mobile))
+            c.execute('select *, st_astext(destination) from `order` where from_user=%s or executor=%s',
+                      (mobile, mobile))
             order_list = c.fetchall()
             for order in order_list:
                 OrderListResource.handle(order)
@@ -84,7 +85,7 @@ class OrderResource(Resource):
         如果要修改订单信息，请使用delete+post"""
         _use(self)
         with mycursor() as c:
-            c.execute('select * from `order` where id=? limit 1', order_id)
+            c.execute('select * from `order` where id=%s limit 1', order_id)
             order = c.fetchone()
             order.pop('destination')
             order = order_schema.load(order)
@@ -93,12 +94,12 @@ class OrderResource(Resource):
                 # 不是发布者，只能更新是否接受任务状态
                 if order['executor'] is None:
                     executor = request.args.get('executor')
-                    c.execute('update `order` set receive_at=current_timestamp, executor=? where id=?',
+                    c.execute('update `order` set receive_at=current_timestamp, executor=%s where id=%s',
                               (executor, order_id))
                 elif order['executor'] == mobile:
                     # 如果接受者是自己，那么三分钟内可以取消
                     if datetime.utcnow() - order['receive_at'] < timedelta(minutes=3):
-                        c.execute('update `order` set receive_at=null, executor=null where id=?', (order_id,))
+                        c.execute('update `order` set receive_at=null, executor=null where id=%s', (order_id,))
                     else:
                         return message(exc='超过三分钟，无法取消接单'), 400
                 else:
@@ -108,5 +109,5 @@ class OrderResource(Resource):
                 # 否则是更新关闭订单的信息
                 # 如果有接受者，这个订单就是完成了，否则就是取消了
                 state = 'cancel' if order['receive_at'] is None else 'finish'
-                c.execute('update `order` set close_at=current_timestamp, close_state=? where id=?',
+                c.execute('update `order` set close_at=current_timestamp, close_state=%s where id=%s',
                           (state, order_id))

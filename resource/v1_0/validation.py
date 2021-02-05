@@ -42,7 +42,7 @@ class SMSResource(Resource):
             send_code(data['mobile'], code)
             get_logger().debug(f'Send code:\n'
                                f'{name=}\n'
-                               f'{code=}\n')
+                               f'{code=}')
             return Response(status=201)
 
     @classmethod
@@ -55,15 +55,15 @@ class SMSResource(Resource):
             code = request.args.get('code')
             rcon = get_rcon()
             real_code = rcon.get(name)
-            if real_code == code:
+            if real_code and real_code == code:
                 return func(*args, **kwargs)
             else:
                 get_logger().debug(f'Failed to pass SMS validate:\n'
                                    f'{mobile=}\n'
                                    f'{name=}\n'
                                    f'{code=}\n'
-                                   f'{real_code=}\n')
-                return Response(status=401)
+                                   f'{real_code=}')
+                return message(exc='无法通过验证'), 401
 
         return wrapper
 
@@ -81,8 +81,10 @@ class PasswdResource(Resource):
                     res = c.fetchone()
                     if res is None:
                         return message(exc='nonexistent user'), 404
-                    if res[0] == hash_passwd(passwd):
+                    elif res[0] == hash_passwd(passwd):
                         return func(*args, **kwargs)
+                    else:
+                        get_logger().debug('Fail to pass password validate')
             return Response(status=401)
 
         return wrapper
@@ -100,9 +102,10 @@ def or_(*validate_func):
         def wrapper(*args, **kwargs):
             for it_ in artifact:
                 res = it_(*args, **kwargs)
-                if not isinstance(res, Response) or res.status_code != 401:
+                # 如果http状态码不是401，那么返回结果
+                if not (isinstance(res, Response) and res.status_code == 401) and not (
+                        isinstance(res, tuple) and res[1] == 401):
                     return res
-
             return Response(status=401)
 
         return wrapper
@@ -149,6 +152,8 @@ class TokenResource(Resource):
                     if res:
                         res = res[0]
                         rcon.set(name, res, ex=ResourceConfig.Token.expire, nx=True)
+                    else:
+                        return message(exc='不存在的用户'), 400
             if res == token:
                 return func(*args, **kwargs)
             else:

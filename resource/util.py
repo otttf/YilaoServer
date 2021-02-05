@@ -203,6 +203,9 @@ class MySQLUtil:
 class BaseApi(Api):
     dup_entry = re.compile(r"Check constraint '(\w+)' is violated.")
     field_specified_twice = re.compile(r"Column '(\w+)' specified twice")
+    no_referenced_row = re.compile(r'Cannot add or update a child row: '
+                                   r'a foreign key constraint fails \(`[^`]+`\.`[^`]+`, '
+                                   r'CONSTRAINT `[^`]+` FOREIGN KEY \((`[^`]+`)\) REFERENCES `[^`]+` \(`[^`]+`\)\)')
 
     def handle_error(self, e):
         if isinstance(e, ArgsUtil.Error):
@@ -219,6 +222,9 @@ class BaseApi(Api):
             elif e.errno == ER_FIELD_SPECIFIED_TWICE:
                 key = self.field_specified_twice.match(e.msg)[1]
                 return message(exc=f'"{key}" specified twice'), 400
+            elif e.errno == ER_NO_REFERENCED_ROW_2:
+                key = self.no_referenced_row.match(e.msg)[1]
+                return message(f'{key}不存在'), 400
             else:
                 print_tb()
                 logger.debug(str(e))
@@ -242,4 +248,7 @@ def message(msg=None, exc=None, **kwargs):
 
 
 def hash_passwd(s: str):
-    return sha256(s.encode()).hexdigest()
+    if DBGConfig.on and not DBGConfig.hash_passwd:
+        return s
+    else:
+        return sha256(s.encode()).hexdigest()

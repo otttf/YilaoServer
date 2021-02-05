@@ -19,16 +19,17 @@ def _use(_): pass
 
 class HaveAll:
     def __getattr__(self, item):
-        return None
+        return self
 
 
 # mysql-connector-python可能会出现ImportError，所以仅尝试插入
 try:
-    from resource.v1_0.order import OrderListResource, OrderResource
+    from resource.v1_0.order import PublicOrderListResource, OrderListResource, OrderResource
     from resource.v1_0.user import UserResource
     from resource.v1_0.validation import PasswdResource, SMSResource, TokenResource
 except ImportError:
     has_all = HaveAll()
+    PublicOrderListResource = has_all
     OrderListResource = has_all
     OrderResource = has_all
     UserResource = has_all
@@ -110,13 +111,13 @@ class SMSTest:
     @link(SMSResource.post)
     def post(cls, mobile, method, base_url, appid=default_appid):
         url = cls.url()
-        json = {
+        json_ = {
             'appid': appid,
             'mobile': mobile,
             'method': method,
             'base_url': base_url
         }
-        resp = requests.post(url, json=json)
+        resp = requests.post(url, json=json_)
         check(resp)
 
 
@@ -162,10 +163,10 @@ class UserTest:
             'appid': appid,
             'code': code
         }
-        json = {
+        json_ = {
             'passwd': passwd
         }
-        resp = requests.put(url, params=params, json=json)
+        resp = requests.put(url, params=params, json=json_)
         check(resp)
 
     @classmethod
@@ -178,15 +179,82 @@ class UserTest:
         set_field(params, passwd)
         set_field(params, code)
         set_field(params, appid)
-        json = {}
-        set_field(json, new_passwd, 'passwd')
-        set_field(json, nickname)
-        set_field(json, sex)
-        set_field(json, portrait)
-        set_point_field(json, default_location)
-        set_field(json, address)
-        resp = requests.patch(url, params=params, json=json)
+        json_ = {}
+        set_field(json_, new_passwd, 'passwd')
+        set_field(json_, nickname)
+        set_field(json_, sex)
+        set_field(json_, portrait)
+        set_point_field(json_, default_location)
+        set_field(json_, address)
+        resp = requests.patch(url, params=params, json=json_)
         check(resp)
+
+
+class PublicOrderListTest:
+    @staticmethod
+    def url():
+        return f'{_prefix}/v1.0/public_orders'
+
+    @classmethod
+    @link(PublicOrderListResource.get)
+    def get(cls):
+        url = cls.url()
+        resp = requests.get(url)
+        check(resp)
+        return resp.json()
+
+
+class OrderListTest:
+    @staticmethod
+    def url(mobile):
+        return f'{_prefix}/v1.0/users/{mobile}/orders'
+
+    @classmethod
+    @link(OrderListResource.get)
+    def get(cls, mobile, token, appid=default_appid):
+        url = cls.url(mobile)
+        params = {}
+        set_field(params, token)
+        set_field(params, appid)
+        resp = requests.get(url, params=params)
+        check(resp)
+        return resp.json()
+
+    @classmethod
+    @link(OrderListResource.post)
+    def post(cls, mobile, token, appid=default_appid, destination_longitude=None, destination_latitude=None,
+             address=None, emergency_level=None, tasks=None):
+        url = cls.url(mobile)
+        params = {}
+        set_field(params, token)
+        set_field(params, appid)
+        json_ = {}
+        set_field(json_, destination_longitude)
+        set_field(json_, destination_latitude)
+        set_field(json_, address)
+        set_field(json_, emergency_level)
+        set_field(json_, tasks)
+        resp = requests.get(url, params=params, json=json_)
+        check(resp)
+        return resp.json()
+
+
+class OrderTest:
+    @staticmethod
+    def url(mobile, order_id):
+        return f'{_prefix}/v1.0/users/{mobile}/orders/{order_id}'
+
+    @classmethod
+    @link(OrderResource.patch)
+    def patch(cls, mobile, token, order_id, appid=default_appid, executor=None):
+        url = cls.url(mobile, order_id)
+        params = {}
+        set_field(params, token)
+        set_field(params, appid)
+        set_field(params, executor)
+        resp = requests.get(url, params=params)
+        check(resp)
+        return resp.json()
 
 
 def signup(mobile, get_code, get_passwd):
@@ -304,5 +372,7 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
         UserTest.patch(mobile, token, appid=default_appid, nickname='new name')
         UserTest.get(mobile, token)
         logging.log(loglevel, '')
+
+        PublicOrderListTest.get()
     except CheckError:
         logging.log(loglevel, 'Failed to pass the test')
