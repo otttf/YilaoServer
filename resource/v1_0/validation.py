@@ -56,6 +56,7 @@ class SMSResource(Resource):
             rcon = get_rcon()
             real_code = rcon.get(name)
             if real_code and real_code == code:
+                get_logger().debug('Succeed')
                 return func(*args, **kwargs)
             else:
                 get_logger().debug(f'Failed to pass SMS validate:\n'
@@ -63,7 +64,7 @@ class SMSResource(Resource):
                                    f'{name=}\n'
                                    f'{code=}\n'
                                    f'{real_code=}')
-                return message(exc='无法通过验证'), 401
+                return Response(status=401)
 
         return wrapper
 
@@ -80,11 +81,16 @@ class PasswdResource(Resource):
                     c.execute('select sha256_passwd from user where mobile=%s limit 1', (mobile,))
                     res = c.fetchone()
                     if res is None:
+                        get_logger().debug(f'Could not pass password validate because user {mobile} is nonexistent\n')
                         return message(exc='nonexistent user'), 404
                     elif res[0] == hash_passwd(passwd):
+                        get_logger().debug('Pass password validate')
                         return func(*args, **kwargs)
                     else:
-                        get_logger().debug('Fail to pass password validate')
+                        get_logger().debug('Could not pass password validate\n'
+                                           f'{mobile=}\n'
+                                           f'{passwd=}\n'
+                                           f'real_passwd={res[0]}')
             return Response(status=401)
 
         return wrapper
@@ -100,12 +106,15 @@ def or_(*validate_func):
             artifact.append(it(func))
 
         def wrapper(*args, **kwargs):
+            get_logger().debug('begin Or_ validate')
             for it_ in artifact:
                 res = it_(*args, **kwargs)
                 # 如果http状态码不是401，那么返回结果
                 if not (isinstance(res, Response) and res.status_code == 401) and not (
                         isinstance(res, tuple) and res[1] == 401):
+                    get_logger().debug('pass Or_ validate')
                     return res
+            get_logger().debug('Could not pass Or_ validate')
             return Response(status=401)
 
         return wrapper
