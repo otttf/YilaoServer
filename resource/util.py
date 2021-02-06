@@ -3,13 +3,14 @@ from flask import request, Response
 from flask_restful import Api
 from functools import lru_cache
 from hashlib import sha256
-import json
 import logging
-from marshmallow import Schema
+from marshmallow import Schema, fields
 from marshmallow.exceptions import ValidationError
 import mysql.connector
 from mysql.connector.errorcode import *
 import re
+from shapely import wkb
+from schema import PointSchema
 import sys
 import traceback
 from werkzeug.exceptions import HTTPException
@@ -40,164 +41,70 @@ def print_tb():
     traceback.print_tb(sys.exc_info()[3], file=sys.stdout)
 
 
-class ArgsUtil:
-    class Error(Exception):
-        pass
+null_point = {
+    'longitude': 0,
+    'latitude': 90,
+    'name': None
+}
 
-    @staticmethod
-    def set_used(*args):
-        if not hasattr(request, 'args_used'):
-            request.args_used = set()
-        request.args_used.update(args)
-
-    @classmethod
-    def check_all_used(cls):
-        res = request.args.keys() - request.args_used
-        if res:
-            raise cls.Error(f'unknown argument <{res}>')
-
-    @classmethod
-    def get(cls, name: str, *, schema: Schema = None, one=True, raise_if_none=True):
-        res = request.args.getlist(name)
-        if len(res) == 0:
-            if raise_if_none:
-                raise cls.Error(f'param <{name}>: required')
-            return None
-        cls.set_used(name)
-        if one and len(res) != 1:
-            raise cls.Error(f'param <{name}>: only one is required')
-        if schema:
-            res = [schema.load({name: it})[name] for it in res]
-        if one:
-            res = res[0]
-        return res
-
-    @classmethod
-    def gets(cls, *args, schema: Schema = None, one=True, raise_if_partial=True):
-        res = []
-        for it in args:
-            res.append(cls.get(it, schema=schema, one=one, raise_if_none=raise_if_partial))
-        return res
+sql_null_point = "st_pointfromtext('point(0 90)', 4326)"
 
 
-class BodyUtil:
-    class Error(Exception):
-        pass
-
-    @classmethod
-    def parse(cls, schema=None):
-        try:
-            res = json.loads(request.data)
-            if schema:
-                res = schema.load(res)
-            return res
-        except json.decoder.JSONDecodeError:
-            raise cls.Error('the HTTP body should be json to pass some necessary arguments')
-
-    @classmethod
-    def require(cls, di, *args):
-        for it in args:
-            if it not in di:
-                raise cls.Error(f'body param <{it}>: required')
-        return tuple(di[it] for it in args)
+@lru_cache()
+def get_point_keys(schema: Schema):
+    spatial_keys = set()
+    for k, v in schema.fields.items():
+        if isinstance(v, fields.Nested) and v.nested == PointSchema:
+            spatial_keys.add(k)
+    return spatial_keys
 
 
-class CursorUtil:
-    class Error(Exception):
-        pass
-
-    @staticmethod
-    def column_name(c):
-        return (it[0] for it in c.description)
-
-    @classmethod
-    def one(cls, c, raise_if_none=True):
-        row = c.fetchone()
-        if raise_if_none and not row:
-            raise cls.Error('not exist')
-        column_name = cls.column_name(c)
-        return dict(zip(column_name, row))
-
-    @classmethod
-    def get(cls, c, raise_if_none=True):
-        rows = c.fetchall()
-        if raise_if_none and not rows:
-            raise cls.Error('not exist')
-        column_name = cls.column_name(c)
-        return [dict(zip(column_name, it)) for it in rows]
+def get_sql_params(di: dict, schema: Schema):
+    keys = []
+    placeholders = []
+    values = []
+    point_keys = get_point_keys(schema)
+    for k, v in di.items():
+        if k in point_keys:
+            keys.extend([k, f'{k}_name'])
+            placeholders.extend(["st_pointfromtext('point(%s %s)', 4326)", '%s'])
+            values.extend([v['longitude'], v['latitude'], v['name']])
+        else:
+            keys.append(k)
+            placeholders.append('%s')
+            values.append(v)
+    # 用反引号包裹变量名，防止特殊变量名造成错误
+    keys = map(lambda k_: f'`{k_}`', keys)
+    return keys, placeholders, values
 
 
-class GeoTypeUtil:
-    pass
+def insert_or_update_params(di: dict, schema: Schema):
+    keys, placeholders, values = get_sql_params(di, schema)
+    return ', '.join(map(lambda z: f'{z[0]}={z[1]}', zip(keys, placeholders))), values
 
 
-class MySQLUtil:
-    class Error(Exception):
-        pass
+def to_readable_location(di: dict, name):
+    # mysql空间类型的内部存储结构SRID(4)+WKB(21)，只需要后面21位
+    if name in di:
+        b = bytes(di[name][4:])
+        point = wkb.loads(b)
+        longitude = point.xy[0][0]
+        latitude = point.xy[1][0]
+        location_name = di.pop(f'{name}_name')
+        di[name] = {
+            'longitude': longitude,
+            'latitude': latitude,
+            'name': location_name
+        }
+    else:
+        di[name] = None
 
-    @staticmethod
-    @lru_cache(1)
-    def null_point():
-        with mycursor(autocommit=False) as c:
-            c.execute('select point(0, 90)')
-            return c.fetchone()[0]
 
-    @classmethod
-    def set_default_point(cls, di, key, default=None):
-        default = default or cls.null_point()
-        if key not in di:
-            di[key] = default
+def dump_locations(di: dict, schema: Schema):
+    point_keys = get_point_keys(schema)
 
-    @classmethod
-    def to_point(cls, di, name):
-        longitude_name = f'{name}_longitude'
-        latitude_name = f'{name}_latitude'
-        if longitude_name in di or latitude_name in di:
-            if longitude_name not in di or latitude_name not in di:
-                raise cls.Error(
-                    f'invalid point, {longitude_name} and {latitude_name} must be given or not together')
-            longitude = di.pop(longitude_name)
-            latitude = di.pop(latitude_name)
-            if longitude == 0 and latitude == 90:
-                raise cls.Error('this is not a possible point')
-            if longitude is None or latitude is None:
-                if longitude is not None or latitude is not None:
-                    raise cls.Error(
-                        f'invalid point, the {longitude_name} and {latitude_name} must be both null or not')
-                longitude = 0
-                latitude = 90
-            with mycursor(autocommit=False) as c:
-                c.execute('select point(%s, %s)', (longitude, latitude))
-                di[name] = c.fetchone()[0]
-
-    @staticmethod
-    def div_point(di, name, point_pattern=re.compile(r'POINT\(([0-9.]+) ([0-9.]+)\)')):
-        di.pop(name)
-        point = di.pop(f'st_astext({name})')
-        res = point_pattern.match(point)
-        longitude, latitude = res[1], res[2]
-        if longitude == '0' and latitude == '90':
-            longitude = None
-            latitude = None
-        di[f'{name}_longitude'] = longitude
-        di[f'{name}_latitude'] = latitude
-
-    @staticmethod
-    def rect(left, top, right, bottom):
-        try:
-            left = float(left)
-            top = float(top)
-            right = float(right)
-            bottom = float(bottom)
-            if left < right or top < bottom:
-                return
-        except ValueError:
-            return
-
-        with mycursor(autocommit=False) as c:
-            c.execute("select st_polyfromtext('POLYGON((%s %s, %s %s, %s %s, %s %s, %s %s))')",
-                      (left, top, right, top, right, bottom, left, bottom, left, top))
-            return c.fetchone()
+    for k in point_keys:
+        to_readable_location(di, k)
 
 
 class BaseApi(Api):
@@ -208,13 +115,7 @@ class BaseApi(Api):
                                    r'CONSTRAINT `[^`]+` FOREIGN KEY \((`[^`]+`)\) REFERENCES `[^`]+` \(`[^`]+`\)\)')
 
     def handle_error(self, e):
-        if isinstance(e, ArgsUtil.Error):
-            return message(exc=str(e)), 400
-        elif isinstance(e, BodyUtil.Error):
-            return message(exc=str(e)), 400
-        elif isinstance(e, CursorUtil.Error):
-            return message(exc=str(e)), 404
-        elif isinstance(e, HTTPException):
+        if isinstance(e, HTTPException):
             return Response(status=e.code)
         elif isinstance(e, mysql.connector.Error):
             if e.errno == ER_DUP_ENTRY:
@@ -229,8 +130,6 @@ class BaseApi(Api):
                 print_tb()
                 logger.debug(str(e))
                 return Response(status=500)
-        elif isinstance(e, MySQLUtil.Error):
-            return message(exc=str(e)), 400
         elif isinstance(e, ValidationError):
             return message(exc=e.args[0]), 400
         else:

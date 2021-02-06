@@ -78,7 +78,7 @@ class PasswdResource(Resource):
             passwd = request.args.get('passwd')
             if passwd:
                 with mycursor(autocommit=False) as c:
-                    c.execute('select sha256_passwd from user where mobile=%s limit 1', (mobile,))
+                    c.execute('select passwd from user where mobile=%s limit 1', (mobile,))
                     res = c.fetchone()
                     if res is None:
                         get_logger().debug(f'Could not pass password validate because user {mobile} is nonexistent\n')
@@ -174,6 +174,7 @@ class TokenResource(Resource):
 sms_validate = SMSResource.validate
 passwd_validate = PasswdResource.validate
 token_validate = TokenResource.validate
+any_validate = or_(sms_validate, passwd_validate, token_validate)
 
 
 def test(validate_func, **kwargs):

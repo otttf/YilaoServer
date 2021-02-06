@@ -1,20 +1,19 @@
-from config.abstractconfig import Environment, ResourceConfig
 from datetime import datetime, timedelta
 from flask import request, Response
 from flask_restful import Resource
-from schema import order_schema
+from schema import order_schema, task_schema
 from wrap import _use
-from ..util import ArgsUtil, BodyUtil, CursorUtil, hash_passwd, message, mycursor, MySQLUtil
-from .validation import or_, passwd_validate, sms_validate, test, token_validate
+from ..util import dump_locations, insert_or_update_params, message, mycursor, null_point
+from .validation import token_validate
 
 
 class PublicOrderListResource(Resource):
     def get(self):
         """获取所有可以接取的任务"""
         _use(self)
-        with mycursor() as c:
+        with mycursor(dictionary=True) as c:
             # TODO 加入时间筛选
-            c.execute("select *, st_astext(destination) from `order` where executor is null and receive_at is null")
+            c.execute("select * from `order` where executor is null and close_state is null")
             order_list = c.fetchall()
             for order in order_list:
                 OrderListResource.handle(order)
@@ -36,20 +35,19 @@ class PublicOrderListResource(Resource):
 class OrderListResource(Resource):
     @staticmethod
     def handle(order: dict):
-        MySQLUtil.div_point(order, 'destination')
-        with mycursor(autocommit=False) as c:
-            c.execute('select *, st_astext(destination) from task where `order`=%s', order['id'])
+        dump_locations(order, order_schema)
+        with mycursor(autocommit=False, dictionary=True) as c:
+            c.execute('select * from task where `order`=%s', (order['id'],))
             order['tasks'] = c.fetchall()
             for task in order['tasks']:
-                MySQLUtil.div_point(task, 'destination')
+                dump_locations(task, task_schema)
 
     @token_validate
     def get(self, mobile):
         """获取和自己相关的订单，自己是发布者或者自己是执行者"""
-        with mycursor() as c:
+        with mycursor(dictionary=True) as c:
             # TODO 加入时间筛选
-            c.execute('select *, st_astext(destination) from `order` where from_user=%s or executor=%s',
-                      (mobile, mobile))
+            c.execute('select * from `order` where from_user=%s or executor=%s', (mobile, mobile))
             order_list = c.fetchall()
             for order in order_list:
                 OrderListResource.handle(order)
@@ -60,22 +58,24 @@ class OrderListResource(Resource):
         """新建一个订单"""
         order = order_schema.loads(request.data.decode())
         order['from_user'] = mobile
-        MySQLUtil.to_point(order, 'destination')
-        MySQLUtil.set_default_point(order, 'destination')
+        if 'destination' not in order:
+            order['destination'] = null_point
 
         tasks = order.pop('tasks')
         for task in tasks:
-            MySQLUtil.to_point(task, 'destination')
-            MySQLUtil.set_default_point(task, 'destination')
+            if 'destination' not in task:
+                task['destination'] = null_point
 
         with mycursor() as c:
-            to_insert = ', '.join(map(lambda it_: f'{it_}=%s', order.keys()))
-            c.execute(f'insert into `order` set {to_insert}', order.values())
+            to_insert = insert_or_update_params(order, order_schema)
+            c.execute(f'insert into `order` set {to_insert[0]}', to_insert[1])
             order_id = c.lastrowid
             for task in tasks:
                 task['order'] = order_id
-                to_insert = ', '.join(map(lambda it_: f'{it_}=%s', order.keys()))
-                c.execute(f"insert into `task` set {to_insert}", task.values())
+                to_insert = insert_or_update_params(task, task_schema)
+                c.execute(f"insert into `task` set {to_insert[0]}", to_insert[1])
+
+        return Response(status=201)
 
 
 class OrderResource(Resource):
@@ -87,8 +87,6 @@ class OrderResource(Resource):
         with mycursor() as c:
             c.execute('select * from `order` where id=%s limit 1', order_id)
             order = c.fetchone()
-            order.pop('destination')
-            order = order_schema.load(order)
             from_user = order['from_user']
             if mobile != from_user:
                 # 不是发布者，只能更新是否接受任务状态

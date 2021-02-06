@@ -1,16 +1,14 @@
 create table user
 (
-    mobile           bigint unsigned primary key,
-    sha256_passwd    char(64),
-    nickname         varchar(32),
-    sex              enum ('male', 'female'),
-    portrait         int unsigned references resource (id),
-    default_location point,
-    address          varchar(64),
-    mark             set ('test') comment '特殊标记：用来给用户增加一系列状态',
-    create_at        timestamp not null default current_timestamp,
-    constraint user_chk_mobile check (mobile regexp '^1[3-9]\\d{9}$'),
-    constraint user_chk_locate check (default_location != point(0, 90) or address is null)
+    mobile                bigint unsigned primary key,
+    passwd                char(64),
+    nickname              varchar(32),
+    sex                   enum ('male', 'female'),
+    portrait              int unsigned references resource (id),
+    default_location      point srid 4326,
+    default_location_name varchar(64),
+    mark                  set ('test') comment '特殊标记：用来给用户增加一系列状态',
+    create_at             timestamp not null default current_timestamp
 );
 
 # 用户登录令牌
@@ -68,16 +66,15 @@ create table dialog_resource_reference
 
 create table store
 (
-    id        int unsigned primary key auto_increment,
-    name      varchar(32) not null,
-    location  point       not null comment 'null = point(0, 90)',
-    address   varchar(64),
-    photo     int unsigned,
-    from_user bigint unsigned,
+    id            int unsigned primary key auto_increment,
+    name          varchar(32)     not null,
+    location      point srid 4326 not null comment 'null = point(0, 90)',
+    location_name varchar(64),
+    photo         int unsigned,
+    from_user     bigint unsigned,
     foreign key (photo) references resource (id),
     foreign key (from_user) references user (mobile),
-    spatial key (location),
-    constraint store_chk_locate check (location != point(0, 90) or address is null)
+    spatial key (location)
 );
 
 create table commodity
@@ -95,20 +92,19 @@ create table commodity
 
 create table `order`
 (
-    id              int unsigned primary key auto_increment,
-    from_user       bigint unsigned           not null,
-    destination     point                     not null comment '交付地点，null = point(0, 90)',
-    address         varchar(64),
-    emergency_level enum ('normal', 'urgent') not null default 'normal',
-    create_at       timestamp                 not null default current_timestamp,
-    receive_at      timestamp,
-    executor        bigint unsigned,
-    close_at        timestamp,
-    close_state     enum ('finish', 'cancel'),
+    id               int unsigned primary key auto_increment,
+    from_user        bigint unsigned           not null,
+    destination      point srid 4326           not null comment '交付地点，null = point(0, 90)',
+    destination_name varchar(64),
+    emergency_level  enum ('normal', 'urgent') not null default 'normal',
+    create_at        timestamp                 not null default current_timestamp,
+    receive_at       timestamp,
+    executor         bigint unsigned,
+    close_at         timestamp,
+    close_state      enum ('finish', 'cancel'),
     foreign key (from_user) references user (mobile),
     foreign key (executor) references user (mobile),
     spatial key (destination),
-    constraint order_chk_locate check (destination != point(0, 90) or address is null),
     constraint order_chk_receive check ((receive_at is null and executor is null) or
                                         (receive_at is not null and executor is not null)),
     constraint order_chk_close check ((receive_at is null and close_at is null) or
@@ -118,24 +114,21 @@ create table `order`
 
 create table task
 (
-    id             int unsigned primary key auto_increment,
-    name           varchar(32)             not null,
-    type           varchar(32)             not null,
-    category       varchar(32),
-    detail         text,
-    protected_info text,
-    photo          int unsigned,
-    `order`        int unsigned            not null,
-    tangible       bool                    not null,
-    destination    point                   not null comment '任务地点，null = point(0, 90)',
-    address        varchar(64),
-    count          int unsigned            not null comment '需要物品的数量',
-    reward         decimal(16, 2) unsigned not null,
-    in_at          timestamp,
-    out_at         timestamp,
+    id               int unsigned primary key auto_increment,
+    name             varchar(32)             not null,
+    type             varchar(32)             not null,
+    category         varchar(32),
+    detail           text,
+    protected_info   text,
+    photo            int unsigned,
+    `order`          int unsigned            not null,
+    destination      point srid 4326         not null comment '任务地点，null = point(0, 90)',
+    destination_name varchar(64),
+    count            int unsigned            not null comment '需要物品的数量',
+    reward           decimal(16, 2) unsigned not null,
+    in_at            timestamp,
+    out_at           timestamp,
     foreign key (photo) references resource (id),
     foreign key (`order`) references `order` (id),
-    spatial key (destination),
-    constraint task_chk_tangible check (tangible or destination != point(0, 90)),
-    constraint task_chk_locate check (destination != point(0, 90) or address is null)
+    spatial key (destination)
 );

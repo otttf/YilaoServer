@@ -2,7 +2,7 @@ from flask import request, Response
 from flask_restful import Resource
 from schema import UserSchema, user_schema
 from wrap import _use
-from ..util import hash_passwd, message, mycursor, MySQLUtil
+from ..util import dump_locations, hash_passwd, insert_or_update_params, mycursor, sql_null_point
 from .validation import or_, passwd_validate, sms_validate, test, token_validate
 
 
@@ -10,13 +10,13 @@ class UserResource(Resource):
     def get(self, mobile):
         _use(self)
         with mycursor(dictionary=True) as c:
-            c.execute('select *, st_astext(default_location) from user where mobile=%s limit 1', (mobile,))
+            c.execute('select * from user where mobile=%s limit 1', (mobile,))
             res = c.fetchone()
             if res is None:
                 return Response(status=404)
             if not test(token_validate, mobile=mobile):
                 return Response(status=401)
-            MySQLUtil.div_point(res, 'default_location')
+            dump_locations(res, user_schema)
             return user_schema.dump(res)
 
     @sms_validate
@@ -25,8 +25,8 @@ class UserResource(Resource):
         passwd = partial_user_schema.loads(request.data.decode())['passwd']
 
         with mycursor() as c:
-            c.execute('insert into user(mobile, sha256_passwd, default_location) '
-                      'values (%s, %s, point(0, 90))',
+            c.execute('insert into user(mobile, passwd, default_location) '
+                      f'values (%s, %s, {sql_null_point})',
                       (mobile, hash_passwd(passwd)))
             return Response(status=201)
 
@@ -37,8 +37,7 @@ class UserResource(Resource):
         field = set(new_data.keys())
         intersection = secret_field & field
         if len(intersection) > 0:
-            if field != secret_field:
-                return message(exc='common field and secret filed could not be given together'), 400
+            # 含有敏感字段，需要使用密码验证或者验证码验证才能通过
             if not test(or_(passwd_validate, sms_validate), mobile=mobile):
                 return Response(status=401)
         else:
@@ -46,10 +45,9 @@ class UserResource(Resource):
                 return Response(status=401)
 
         if 'passwd' in new_data:
-            new_data['sha256_passwd'] = hash_passwd(new_data.pop('passwd'))
-        MySQLUtil.to_point(new_data, 'default_location')
+            new_data['passwd'] = hash_passwd(new_data.pop('passwd'))
 
         with mycursor() as c:
-            to_update = ', '.join(map(lambda _it: f'{_it}=%s', new_data.keys()))
-            c.execute(f"update user set {to_update} where mobile=%s", (*tuple(new_data.values()), mobile))
+            to_update = insert_or_update_params(new_data, partial_user_schema)
+            c.execute(f"update user set {to_update[0]} where mobile=%s", (*to_update[1], mobile))
             return Response(status=204)

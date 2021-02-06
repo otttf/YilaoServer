@@ -92,14 +92,12 @@ def set_field(di, value, name=None):
         di[name] = None if value == Null else value
 
 
-def set_point_field(di, value, name=None):
-    if value is not None:
-        if name is None:
-            name = get_args_name()[1]
-        longitude = f'{name}_longitude'
-        latitude = f'{name}_latitude'
-        set_field(di, value[0], longitude)
-        set_field(di, value[1], latitude)
+def point(longitude, latitude, name):
+    return {
+        'longitude': longitude,
+        'latitude': latitude,
+        'name': name
+    }
 
 
 class SMSTest:
@@ -172,7 +170,7 @@ class UserTest:
     @classmethod
     @link(UserResource.patch)
     def patch(cls, mobile, token=None, passwd=None, code=None, appid=None, new_passwd=None, nickname=None, sex=None,
-              portrait=None, default_location=None, address=None):
+              portrait=None, default_location=None):
         url = cls.url(mobile)
         params = {}
         set_field(params, token)
@@ -184,8 +182,7 @@ class UserTest:
         set_field(json_, nickname)
         set_field(json_, sex)
         set_field(json_, portrait)
-        set_point_field(json_, default_location)
-        set_field(json_, address)
+        set_field(json_, default_location)
         resp = requests.patch(url, params=params, json=json_)
         check(resp)
 
@@ -202,6 +199,21 @@ class PublicOrderListTest:
         resp = requests.get(url)
         check(resp)
         return resp.json()
+
+
+def task(name, type_, count, reward, destination=None, category=None, detail=None, protected_info=None,
+         photo=None):
+    json_ = {}
+    set_field(json_, name)
+    set_field(json_, type_, 'type')
+    set_field(json_, count)
+    set_field(json_, reward)
+    set_field(json_, destination)
+    set_field(json_, category)
+    set_field(json_, detail)
+    set_field(json_, protected_info)
+    set_field(json_, photo)
+    return json_
 
 
 class OrderListTest:
@@ -222,21 +234,17 @@ class OrderListTest:
 
     @classmethod
     @link(OrderListResource.post)
-    def post(cls, mobile, token, appid=default_appid, destination_longitude=None, destination_latitude=None,
-             address=None, emergency_level=None, tasks=None):
+    def post(cls, mobile, token, appid=default_appid, destination=None, emergency_level=None, tasks=None):
         url = cls.url(mobile)
         params = {}
         set_field(params, token)
         set_field(params, appid)
         json_ = {}
-        set_field(json_, destination_longitude)
-        set_field(json_, destination_latitude)
-        set_field(json_, address)
+        set_field(json_, destination)
         set_field(json_, emergency_level)
         set_field(json_, tasks)
-        resp = requests.get(url, params=params, json=json_)
+        resp = requests.post(url, params=params, json=json_)
         check(resp)
-        return resp.json()
 
 
 class OrderTest:
@@ -252,7 +260,7 @@ class OrderTest:
         set_field(params, token)
         set_field(params, appid)
         set_field(params, executor)
-        resp = requests.get(url, params=params)
+        resp = requests.patch(url, params=params)
         check(resp)
         return resp.json()
 
@@ -369,10 +377,29 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
         header('Patch name', 2)
         logging.log(loglevel, '')
         token = login_by_passwd(mobile, get_passwd(1))
-        UserTest.patch(mobile, token, appid=default_appid, nickname='new name')
+        UserTest.patch(mobile, token, appid=default_appid, default_location=point(12, 34, 'abc'))
         UserTest.get(mobile, token)
         logging.log(loglevel, '')
 
+        header('OrderTest')
+        header('Post order', 1)
+        OrderListTest.post(mobile, token, tasks=[
+            task('abc', 'aaa', 1, 1, point(12, 30, 'wwww'))
+        ])
+
+        header('Get relative order', 1)
+        OrderListTest.get(mobile, token)
+
+        header('Get public order')
         PublicOrderListTest.get()
+
+        header('Relative order of another one')
+        another_one_mobile = 16698066603
+        try:
+            signup(another_one_mobile, get_code, partial(get_passwd, 1))
+        except Error:
+            pass
+        token = login_by_passwd(another_one_mobile, get_passwd(1))
+        OrderListTest.get(another_one_mobile, token)
     except CheckError:
         logging.log(loglevel, 'Failed to pass the test')

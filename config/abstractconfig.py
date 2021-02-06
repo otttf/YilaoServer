@@ -16,7 +16,7 @@ class DBGConfig:
         close_times_limit = True
 
     class MySQL:
-        drop_before_run: bool = False
+        drop_before_run: bool = True
         close_foreign_key: bool = False
 
     on = True
