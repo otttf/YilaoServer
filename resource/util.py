@@ -37,10 +37,6 @@ def get_logger():
     return logger
 
 
-def print_tb():
-    traceback.print_tb(sys.exc_info()[3], file=sys.stdout)
-
-
 null_point = {
     'longitude': 0,
     'latitude': 90,
@@ -119,30 +115,27 @@ class BaseApi(Api):
             return Response(status=e.code)
         elif isinstance(e, mysql.connector.Error):
             if e.errno == ER_DUP_ENTRY:
-                return message(exc=e.msg), 409
+                return exc(e.msg), 409
             elif e.errno == ER_FIELD_SPECIFIED_TWICE:
                 key = self.field_specified_twice.match(e.msg)[1]
-                return message(exc=f'"{key}" specified twice'), 400
+                return exc(f'"{key}" specified twice'), 400
             elif e.errno == ER_NO_REFERENCED_ROW_2:
                 key = self.no_referenced_row.match(e.msg)[1]
-                return message(f'{key}不存在'), 400
+                return exc(f'{key}不存在', True), 400
             else:
                 print_tb()
                 logger.debug(str(e))
                 return Response(status=500)
         elif isinstance(e, ValidationError):
-            return message(exc=e.args[0]), 400
+            return exc(e.args[0], True), 400
         else:
-            print_tb()
-            logger.debug(str(e))
+            logger.debug(traceback.format_exc())
             return Response(status=500)
 
 
-def message(msg=None, exc=None, **kwargs):
-    kwargs['msg'] = msg
-    kwargs['exc'] = exc
-    if DBGConfig.on:
-        kwargs['echo'] = f'{request.method} {request.url}\n{request.headers}{request.data.decode()}'
+def exc(s, echo=False, **kwargs):
+    kwargs['exc'] = s
+    kwargs['echo'] = f'{request.method} {request.url}\n{request.headers}{request.data.decode()}'
     return kwargs
 
 

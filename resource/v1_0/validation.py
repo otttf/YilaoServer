@@ -5,7 +5,7 @@ from functools import wraps
 import json
 from sms import rand_code, send_code
 from uuid import uuid4
-from ..util import get_logger, get_rcon, hash_passwd, message, mycursor
+from ..util import get_logger, get_rcon, hash_passwd, exc, mycursor
 from flask import request
 
 
@@ -22,7 +22,7 @@ class SMSResource(Resource):
         data = json.loads(request.data)
         appid = data.get('appid')
         if appid not in ResourceConfig.SMS.appid_list:
-            return message(exc='Invalid appid'), 400
+            return exc('Invalid appid', True), 400
 
         # 阿里云本身已有信息限制功能，可以考虑改成IP限制
         count_name = yl(f"sms/count?mobile={data['mobile']}")
@@ -34,7 +34,7 @@ class SMSResource(Resource):
             rcon.expire(count_name, ResourceConfig.SMS.expire)
 
         if (not DBGConfig.on or not DBGConfig.SMS.close_times_limit) and count > ResourceConfig.SMS.times_limit:
-            return message(exc='frequent request'), 400
+            return exc('frequent request'), 400
         else:
             name = self.sms_name(**data)
             code = rand_code()
@@ -82,7 +82,7 @@ class PasswdResource(Resource):
                     res = c.fetchone()
                     if res is None:
                         get_logger().debug(f'Could not pass password validate because user {mobile} is nonexistent\n')
-                        return message(exc='nonexistent user'), 404
+                        return exc('nonexistent user', True), 404
                     elif res[0] == hash_passwd(passwd):
                         get_logger().debug('Pass password validate')
                         return func(*args, **kwargs)
@@ -132,7 +132,7 @@ class TokenResource(Resource):
     def post(self, mobile):
         appid = request.args.get('appid')
         if appid is None:
-            return message(exc='appid is null'), 400
+            return exc('appid is null'), 400
         uuid = uuid4().hex
         with mycursor() as c:
             get_rcon().delete(self.token_name(mobile, appid))
@@ -140,7 +140,7 @@ class TokenResource(Resource):
                 'replace into token(user, appid, hex, deadline) '
                 'values (%s, %s, %s, current_timestamp + interval %s second)',
                 (mobile, appid, uuid, ResourceConfig.Token.expire))
-        return message(token=uuid), 201
+        return {'token': uuid}, 201
 
     @classmethod
     def validate(cls, func):
@@ -162,7 +162,7 @@ class TokenResource(Resource):
                         res = res[0]
                         rcon.set(name, res, ex=ResourceConfig.Token.expire, nx=True)
                     else:
-                        return message(exc='不存在的用户'), 400
+                        return exc('不存在的用户', True), 400
             if res == token:
                 return func(*args, **kwargs)
             else:

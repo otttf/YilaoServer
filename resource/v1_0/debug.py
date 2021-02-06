@@ -3,7 +3,8 @@ from wrap import _use
 from flask import request, Response
 from flask_restful import Resource
 import json
-from ..util import get_rcon, print_tb, message, mycursor
+import traceback
+from ..util import get_rcon, print_tb, exc, mycursor
 
 _use(DBGConfig)
 
@@ -26,14 +27,15 @@ class CMDResource(Resource):
                 with mycursor(dictionary=True) as c:
                     c.execute(cmd)
                     res = c.fetchall()
-                    return message(msg=str(res)), 201
+                    return res, 201
             elif type_ == 'redis':
                 get_rcon().execute_command(cmd)
                 return Response(status=201)
             else:
                 raise self.UnknownCmdTypeError
         except self.UnknownCmdTypeError:
-            return message(exc='unknown cmd type'), 400
+            return exc('unknown cmd type', True), 400
         except Exception as e:
-            print_tb()
-            return message(exc=str(e)), 500
+            _use(e)
+            print(traceback.format_exc())
+            return exc('发生内部错误'), 500

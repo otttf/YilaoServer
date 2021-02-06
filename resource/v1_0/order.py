@@ -3,7 +3,7 @@ from flask import request, Response
 from flask_restful import Resource
 from schema import order_schema, task_schema
 from wrap import _use
-from ..util import dump_locations, insert_or_update_params, message, mycursor, null_point
+from ..util import dump_locations, insert_or_update_params, exc, mycursor, null_point
 from .validation import token_validate
 
 
@@ -85,7 +85,7 @@ class OrderResource(Resource):
         如果要修改订单信息，请使用delete+post"""
         _use(self)
         with mycursor() as c:
-            c.execute('select * from `order` where id=%s limit 1', order_id)
+            c.execute('select * from `order` where id=%s limit 1', (order_id,))
             order = c.fetchone()
             from_user = order['from_user']
             if mobile != from_user:
@@ -99,10 +99,10 @@ class OrderResource(Resource):
                     if datetime.utcnow() - order['receive_at'] < timedelta(minutes=3):
                         c.execute('update `order` set receive_at=null, executor=null where id=%s', (order_id,))
                     else:
-                        return message(exc='超过三分钟，无法取消接单'), 400
+                        return exc('超过三分钟，无法取消接单'), 400
                 else:
                     # 如果任务已被接受
-                    return message(exc='任务已被其他人接受'), 400
+                    return exc('任务已被其他人接受'), 400
             else:
                 # 否则是更新关闭订单的信息
                 # 如果有接受者，这个订单就是完成了，否则就是取消了
