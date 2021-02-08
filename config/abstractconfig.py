@@ -93,6 +93,9 @@ class RedisConfig:
 
 
 class ResourceConfig:
+    class Resource:
+        chuck_size: int = 4096
+
     class User:
         active_duration: float = 300
 

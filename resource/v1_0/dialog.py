@@ -1,6 +1,6 @@
 from flask import request, Response
 from flask_restful import Resource
-from schema import dialog_schema, DialogSchema
+from schema import dialog_schema
 from ..util import curd_params, mycursor
 from .validation import token_validate
 

@@ -66,7 +66,10 @@ def check(resp):
     logmsg = (f"{' REQUEST '.center(header_width, '=')}\n"
               f'{resp.request.method} {resp.request.url}\n')
     if resp.request.body:
-        logmsg += f'\n{json.dumps(json.loads(resp.request.body.decode()), indent=4)}\n'
+        try:
+            logmsg += f'\n{json.dumps(json.loads(resp.request.body.decode()), indent=4)}\n'
+        except Exception as e:
+            _use(e)
     logmsg += f"{' RESPONSE '.center(header_width, '=')}\n"
     logmsg += f'{resp.status_code} {resp.reason}\n'
     if resp.content:
@@ -306,6 +309,23 @@ class DialogTest:
         check(resp)
 
 
+class ResourceTest:
+    @staticmethod
+    def url(mobile):
+        return f'{_prefix}/v1.0/mobile/{mobile}/resources'
+
+    @classmethod
+    def post(cls, mobile, token, filename, appid=default_appid):
+        url = cls.url(mobile)
+        params = {}
+        set_field(params, token)
+        set_field(params, appid)
+        with open(filename, 'rb') as f:
+            resp = requests.post(url, params=params, data=f.read())
+        check(resp)
+        return resp.json()
+
+
 def signup(mobile, get_code, get_passwd):
     try:
         UserTest.get(mobile, appid=None)
@@ -456,5 +476,9 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
         DialogTest.post(another_one_mobile, another_token, mobile, 'hi!')
         header('Get all', 1)
         DialogListTest.get(mobile, token, another_one_mobile)
+
+        header('ResourceTest')
+        header('Send')
+        ResourceTest.post(mobile, token, __file__)
     except CheckError:
         logging.log(loglevel, 'Failed to pass the test')

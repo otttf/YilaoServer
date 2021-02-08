@@ -35,9 +35,9 @@ class UserSchema(Schema):
 
 
 class ResourceSchema(Schema):
-    id = fields.Int()
-    suffix = fields.Str(allow_none=True)
-    data = fields.Raw(required=True)
+    uuid = fields.Str(dump_only=True)
+    from_user = fields.Int(dump_only=True)
+    create_at = fields.DateTime(dump_only=True)
 
 
 class DialogSchema(Schema):

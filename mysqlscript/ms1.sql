@@ -1,10 +1,10 @@
 create table user
 (
     mobile                bigint unsigned primary key,
-    passwd                char(64),
+    passwd                varchar(64),
     nickname              varchar(32),
     sex                   enum ('male', 'female'),
-    portrait              int unsigned references resource (id),
+    portrait              char(36) references resource (uuid),
     default_location      point srid 4326,
     default_location_name varchar(64),
     mark                  set ('test') comment '特殊标记：用来给用户增加一系列状态',
@@ -31,18 +31,15 @@ create event token_event_auto_clear on schedule every 1 hour do delete
 
 create table resource
 (
-    id        int unsigned primary key auto_increment,
-    suffix    varchar(16),
-    data      mediumblob      not null,
+    uuid      char(36) primary key,
+#     visibility enum ('public', '') default 'public', # 可见性
     from_user bigint unsigned not null,
     create_at timestamp       not null default current_timestamp,
-    delete_at timestamp,
-    foreign key (from_user) references user (mobile),
-    index (delete_at)
+    foreign key (from_user) references user (mobile)
 );
 
 alter table user
-    add foreign key (portrait) references resource (id);
+    add foreign key (portrait) references resource (uuid);
 
 create table dialog
 (
@@ -55,24 +52,15 @@ create table dialog
     foreign key (to_user) references user (mobile)
 );
 
-create table dialog_resource_reference
-(
-    dialog   int unsigned,
-    resource int unsigned,
-    primary key (dialog, resource),
-    foreign key (dialog) references dialog (id),
-    foreign key (resource) references resource (id)
-);
-
 create table store
 (
     id            int unsigned primary key auto_increment,
     name          varchar(32)     not null,
     location      point srid 4326 not null comment 'null = point(0, 90)',
     location_name varchar(64),
-    photo         int unsigned,
+    photo         char(36),
     from_user     bigint unsigned,
-    foreign key (photo) references resource (id),
+    foreign key (photo) references resource (uuid),
     foreign key (from_user) references user (mobile),
     spatial key (location)
 );
@@ -85,9 +73,9 @@ create table commodity
     on_offer     bool                    not null default false,
     price        decimal(16, 2) unsigned not null,
     sales_volume int unsigned            not null default 0,
-    photo        int unsigned,
+    photo        char(36),
     foreign key (store) references store (id),
-    foreign key (photo) references resource (id)
+    foreign key (photo) references resource (uuid)
 );
 
 create table `order`
@@ -120,7 +108,7 @@ create table task
     category         varchar(32),
     detail           text,
     protected_info   text,
-    photo            int unsigned,
+    photo            char(36),
     `order`          int unsigned            not null,
     destination      point srid 4326         not null comment '任务地点，null = point(0, 90)',
     destination_name varchar(64),
@@ -128,7 +116,7 @@ create table task
     reward           decimal(16, 2) unsigned not null,
     in_at            timestamp,
     out_at           timestamp,
-    foreign key (photo) references resource (id),
+    foreign key (photo) references resource (uuid),
     foreign key (`order`) references `order` (id),
     spatial key (destination)
 );

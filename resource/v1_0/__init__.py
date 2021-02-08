@@ -6,6 +6,7 @@ from mkdocs.__main__ import build
 from wrap import send, recv
 from .dialog import DialogListResource, DialogResource
 from .order import PublicOrderListResource, OrderListResource, OrderResource
+from .resource import ResourceResource
 from .user import UserResource
 from .validation import PasswdResource, SMSResource, TokenResource
 from ..util import BaseApi, get_rcon
@@ -39,6 +40,7 @@ def register_api_1_0(app):
     api.add_resource(OrderListResource, '/v1.0/users/<int:mobile>/orders')
     api.add_resource(OrderResource, '/v1.0/users/<int:mobile>/orders/<int:order_id>')
     api.add_resource(PublicOrderListResource, '/v1.0/public_orders')
+    api.add_resource(ResourceResource, '/v1.0/mobile/<int:mobile>/resources')
     api.add_resource(SMSResource, '/v1.0/sms')
     api.add_resource(TokenResource, '/v1.0/users/<int:mobile>/tokens')
     api.add_resource(UserResource, '/v1.0/users/<int:mobile>')

@@ -269,5 +269,6 @@ cython_debug/
 
 ### Custom ignore
 config/secret.json
+data/
 test*.py
 run/
