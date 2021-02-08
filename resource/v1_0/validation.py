@@ -162,7 +162,7 @@ class TokenResource(Resource):
                         res = res[0]
                         rcon.set(name, res, ex=ResourceConfig.Token.expire, nx=True)
                     else:
-                        return exc('不存在的用户', True), 400
+                        return exc('不存在的token验证', True), 404
             if res == token:
                 return func(*args, **kwargs)
             else:

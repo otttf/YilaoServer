@@ -24,11 +24,13 @@ class HaveAll:
 
 # mysql-connector-python可能会出现ImportError，所以仅尝试插入
 try:
+    from resource.v1_0.dialog import DialogResource
     from resource.v1_0.order import PublicOrderListResource, OrderListResource, OrderResource
     from resource.v1_0.user import UserResource
     from resource.v1_0.validation import PasswdResource, SMSResource, TokenResource
 except ImportError:
     has_all = HaveAll()
+    DialogResource = has_all
     PublicOrderListResource = has_all
     OrderListResource = has_all
     OrderResource = has_all
@@ -68,7 +70,10 @@ def check(resp):
     logmsg += f"{' RESPONSE '.center(header_width, '=')}\n"
     logmsg += f'{resp.status_code} {resp.reason}\n'
     if resp.content:
-        logmsg += f'\n{json.dumps(json.loads(resp.content.decode()), indent=4)}\n'
+        try:
+            logmsg += f'\n{json.dumps(json.loads(resp.content.decode()), indent=4)}\n'
+        except Exception as e:
+            _use(e)
     logmsg += f"{' END '.center(header_width, '=')}"
     logging.log(loglevel, logmsg)
     if resp.status_code // 100 != 2:
@@ -265,6 +270,42 @@ class OrderTest:
         return resp.json()
 
 
+class DialogListTest:
+    @staticmethod
+    def url(mobile, other):
+        return f'{_prefix}/v1.0/users/{mobile}/dialogs_with/{other}'
+
+    @classmethod
+    @link(DialogResource.get)
+    def get(cls, mobile, token, other, appid=default_appid):
+        url = cls.url(mobile, other)
+        params = {}
+        set_field(params, token)
+        set_field(params, appid)
+        resp = requests.get(url, params=params)
+        check(resp)
+        return resp.json()
+
+
+class DialogTest:
+    @staticmethod
+    def url(mobile):
+        return f'{_prefix}/v1.0/users/{mobile}/dialogs'
+
+    @classmethod
+    @link(DialogResource.post)
+    def post(cls, mobile, token, to_user, content, appid=default_appid):
+        url = cls.url(mobile)
+        params = {}
+        set_field(params, token)
+        set_field(params, appid)
+        json_ = {}
+        set_field(json_, content)
+        set_field(json_, to_user)
+        resp = requests.post(url, params=params, json=json_)
+        check(resp)
+
+
 def signup(mobile, get_code, get_passwd):
     try:
         UserTest.get(mobile, appid=None)
@@ -399,7 +440,21 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
             signup(another_one_mobile, get_code, partial(get_passwd, 1))
         except Error:
             pass
-        token = login_by_passwd(another_one_mobile, get_passwd(1))
-        OrderListTest.get(another_one_mobile, token)
+        another_token = login_by_passwd(another_one_mobile, get_passwd(1))
+        OrderListTest.get(another_one_mobile, another_token)
+
+        header('DialogTest')
+        header('Send', 1)
+        DialogTest.post(mobile, token, another_one_mobile, 'hello!')
+        header('Get all', 1)
+        DialogListTest.get(mobile, token, another_one_mobile)
+        header('Get empty', 1)
+        DialogListTest.get(mobile, token, 0)
+        header('Another get all', 1)
+        DialogListTest.get(another_one_mobile, another_token, mobile)
+        header('Another send', 1)
+        DialogTest.post(another_one_mobile, another_token, mobile, 'hi!')
+        header('Get all', 1)
+        DialogListTest.get(mobile, token, another_one_mobile)
     except CheckError:
         logging.log(loglevel, 'Failed to pass the test')

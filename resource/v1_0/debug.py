@@ -4,7 +4,7 @@ from flask import request, Response
 from flask_restful import Resource
 import json
 import traceback
-from ..util import get_rcon, print_tb, exc, mycursor
+from ..util import get_rcon, exc, mycursor
 
 _use(DBGConfig)
 

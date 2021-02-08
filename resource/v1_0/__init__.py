@@ -2,9 +2,9 @@ from config.abstractconfig import DBGConfig, Environment, yl
 from flask import send_from_directory, redirect
 from mkdocs import config
 from mkdocs.__main__ import build
-import os
 # import tempfile
 from wrap import send, recv
+from .dialog import DialogListResource, DialogResource
 from .order import PublicOrderListResource, OrderListResource, OrderResource
 from .user import UserResource
 from .validation import PasswdResource, SMSResource, TokenResource
@@ -34,8 +34,10 @@ def register_api_1_0(app):
     def get_doc(filename):
         return send_from_directory(site_dir, filename)
 
-    api.add_resource(OrderResource, '/v1.0/users/<int:mobile>/orders/<int:order_id>')
+    api.add_resource(DialogListResource, '/v1.0/users/<int:mobile>/dialogs_with/<int:other>')
+    api.add_resource(DialogResource, '/v1.0/users/<int:mobile>/dialogs')
     api.add_resource(OrderListResource, '/v1.0/users/<int:mobile>/orders')
+    api.add_resource(OrderResource, '/v1.0/users/<int:mobile>/orders/<int:order_id>')
     api.add_resource(PublicOrderListResource, '/v1.0/public_orders')
     api.add_resource(SMSResource, '/v1.0/sms')
     api.add_resource(TokenResource, '/v1.0/users/<int:mobile>/tokens')

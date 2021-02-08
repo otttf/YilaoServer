@@ -3,7 +3,7 @@ from flask import request, Response
 from flask_restful import Resource
 from schema import order_schema, task_schema
 from wrap import _use
-from ..util import dump_locations, insert_or_update_params, exc, mycursor, null_point
+from ..util import dump_locations, curd_params, exc, mycursor, null_point
 from .validation import token_validate
 
 
@@ -67,12 +67,12 @@ class OrderListResource(Resource):
                 task['destination'] = null_point
 
         with mycursor() as c:
-            to_insert = insert_or_update_params(order, order_schema)
+            to_insert = curd_params(order, order_schema)
             c.execute(f'insert into `order` set {to_insert[0]}', to_insert[1])
             order_id = c.lastrowid
             for task in tasks:
                 task['order'] = order_id
-                to_insert = insert_or_update_params(task, task_schema)
+                to_insert = curd_params(task, task_schema)
                 c.execute(f"insert into `task` set {to_insert[0]}", to_insert[1])
 
         return Response(status=201)
@@ -83,7 +83,6 @@ class OrderResource(Resource):
     def patch(self, mobile, order_id):
         """更新订单状态，注意patch只做订单被接受和订单被关闭的处理
         如果要修改订单信息，请使用delete+post"""
-        _use(self)
         with mycursor() as c:
             c.execute('select * from `order` where id=%s limit 1', (order_id,))
             order = c.fetchone()

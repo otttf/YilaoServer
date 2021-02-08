@@ -2,7 +2,7 @@ from flask import request, Response
 from flask_restful import Resource
 from schema import UserSchema, user_schema
 from wrap import _use
-from ..util import dump_locations, hash_passwd, insert_or_update_params, mycursor, sql_null_point
+from ..util import dump_locations, hash_passwd, curd_params, mycursor, sql_null_point
 from .validation import or_, passwd_validate, sms_validate, test, token_validate
 
 
@@ -48,6 +48,6 @@ class UserResource(Resource):
             new_data['passwd'] = hash_passwd(new_data.pop('passwd'))
 
         with mycursor() as c:
-            to_update = insert_or_update_params(new_data, partial_user_schema)
+            to_update = curd_params(new_data, partial_user_schema)
             c.execute(f"update user set {to_update[0]} where mobile=%s", (*to_update[1], mobile))
             return Response(status=204)

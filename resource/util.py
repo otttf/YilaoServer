@@ -74,7 +74,7 @@ def get_sql_params(di: dict, schema: Schema):
     return keys, placeholders, values
 
 
-def insert_or_update_params(di: dict, schema: Schema):
+def curd_params(di: dict, schema: Schema):
     keys, placeholders, values = get_sql_params(di, schema)
     return ', '.join(map(lambda z: f'{z[0]}={z[1]}', zip(keys, placeholders))), values
 

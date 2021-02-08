@@ -42,10 +42,10 @@ class ResourceSchema(Schema):
 
 class DialogSchema(Schema):
     id = fields.Int()
-    context = fields.Str(required=True)
+    content = fields.Str(required=True)
     from_user = fields.Int(dump_only=True)
     to_user = fields.Int(required=True)
-    send_time = fields.DateTime(dump_only=True)
+    send_at = fields.DateTime(dump_only=True)
 
 
 class StoreSchema(Schema):
