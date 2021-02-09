@@ -1,6 +1,5 @@
 from config.yilaoconfig import *
 from flask import Flask
-import json
 import logging
 from mysqlscript import iter_table, UserVersion
 from resource import *

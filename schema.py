@@ -35,7 +35,7 @@ class UserSchema(Schema):
 
 
 class ResourceSchema(Schema):
-    uuid = fields.Str(dump_only=True)
+    uuid = fields.Str(required=True)
     from_user = fields.Int(dump_only=True)
     create_at = fields.DateTime(dump_only=True)
 

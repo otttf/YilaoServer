@@ -1,12 +1,12 @@
 from config.abstractconfig import DBGConfig, Environment, yl
-from flask import send_from_directory, redirect
+from flask import Flask, send_from_directory, redirect
 from mkdocs import config
 from mkdocs.__main__ import build
 # import tempfile
 from wrap import send, recv
 from .dialog import DialogListResource, DialogResource
 from .order import PublicOrderListResource, OrderListResource, OrderResource
-from .resource import ResourceResource
+from .resource import get_public_resource, ResourceListResource
 from .user import UserResource
 from .validation import PasswdResource, SMSResource, TokenResource
 from ..util import BaseApi, get_rcon
@@ -16,7 +16,7 @@ class Api1o0(BaseApi):
     pass
 
 
-def register_api_1_0(app):
+def register_api_1_0(app: Flask):
     api = Api1o0(app)
     name = yl('v1.0/docs_path', False)
     if Environment.rank() == 0:
@@ -40,10 +40,11 @@ def register_api_1_0(app):
     api.add_resource(OrderListResource, '/v1.0/users/<int:mobile>/orders')
     api.add_resource(OrderResource, '/v1.0/users/<int:mobile>/orders/<int:order_id>')
     api.add_resource(PublicOrderListResource, '/v1.0/public_orders')
-    api.add_resource(ResourceResource, '/v1.0/mobile/<int:mobile>/resources')
+    api.add_resource(ResourceListResource, '/v1.0/mobile/<int:mobile>/resources')
     api.add_resource(SMSResource, '/v1.0/sms')
     api.add_resource(TokenResource, '/v1.0/users/<int:mobile>/tokens')
     api.add_resource(UserResource, '/v1.0/users/<int:mobile>')
+    app.route('/v1.0/mobile/<int:mobile>/resources/<string:uuid>', methods=['Get'])(get_public_resource)
     if DBGConfig.on:
         pass
 

@@ -309,7 +309,7 @@ class DialogTest:
         check(resp)
 
 
-class ResourceTest:
+class ResourceListTest:
     @staticmethod
     def url(mobile):
         return f'{_prefix}/v1.0/mobile/{mobile}/resources'
@@ -323,7 +323,23 @@ class ResourceTest:
         with open(filename, 'rb') as f:
             resp = requests.post(url, params=params, data=f.read())
         check(resp)
-        return resp.json()
+        return resp.json()['uuid']
+
+
+class ResourceTest:
+    @staticmethod
+    def url(mobile, uuid):
+        return f'{_prefix}/v1.0/mobile/{mobile}/resources/{uuid}'
+
+    @classmethod
+    def get(cls, mobile, token, uuid, appid=default_appid):
+        url = cls.url(mobile, uuid)
+        params = {}
+        set_field(params, token)
+        set_field(params, appid)
+        resp = requests.get(url, params=params)
+        check(resp)
+        return resp.content
 
 
 def signup(mobile, get_code, get_passwd):
@@ -478,7 +494,9 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
         DialogListTest.get(mobile, token, another_one_mobile)
 
         header('ResourceTest')
-        header('Send')
-        ResourceTest.post(mobile, token, __file__)
+        header('Post', 1)
+        uuid = ResourceListTest.post(mobile, token, __file__)
+        header('Get', 1)
+        ResourceTest.get(mobile, token, uuid)
     except CheckError:
         logging.log(loglevel, 'Failed to pass the test')
