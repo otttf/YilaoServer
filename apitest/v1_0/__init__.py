@@ -413,50 +413,36 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
     try:
         header('Usertest')
         header('Test Signup', 1)
-        logging.log(loglevel, '')
         try:
             signup(mobile, get_code, partial(get_passwd, 1))
-            logging.log(loglevel, 'Signup successfully\n')
         except Error as e:
-            logging.log(loglevel, f'{e}\n')
-        logging.log(loglevel, '')
+            pass
 
         # user login
         header('Test Login', 1)
         header('By passwd', 2)
-        logging.log(loglevel, '')
-        token = login_by_passwd(mobile, get_passwd(1))
-        UserTest.get(mobile, token)
-        logging.log(loglevel, '')
+        login_by_passwd(mobile, get_passwd(1))
         header('By code', 2)
-        logging.log(loglevel, '')
-        token = login_by_code(mobile, get_code)
-        UserTest.get(mobile, token)
-        logging.log(loglevel, '')
+        login_by_code(mobile, get_code)
 
         # user secret patch
         header('Test Patch passwd', 1)
         header('By old', 2)
-        logging.log(loglevel, '')
         reset_passwd_by_old(mobile, partial(get_passwd, 1), partial(get_passwd, 2))
-        token = login_by_passwd(mobile, get_passwd(2))
-        UserTest.get(mobile, token)
-        logging.log(loglevel, '')
+        login_by_passwd(mobile, get_passwd(2))
         header('By code', 2)
-        logging.log(loglevel, '')
         reset_passwd_by_code(mobile, get_code, partial(get_passwd, 1))
-        token = login_by_passwd(mobile, get_passwd(1))
-        UserTest.get(mobile, token)
-        logging.log(loglevel, '')
+        login_by_passwd(mobile, get_passwd(1))
 
         # user common patch
         header('Test patch common', 1)
         header('Patch name', 2)
-        logging.log(loglevel, '')
         token = login_by_passwd(mobile, get_passwd(1))
         UserTest.patch(mobile, token, appid=default_appid, default_location=point(12, 34, 'abc'))
+
+        # get user info
+        header('Get Info', 1)
         UserTest.get(mobile, token)
-        logging.log(loglevel, '')
 
         header('OrderTest')
         header('Post order', 1)
