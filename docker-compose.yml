@@ -3,7 +3,7 @@ services:
   app:
     build: .
     ports:
-      - 5000:8001
+      - 15000:8001
     depends_on:
       - mysql
       - redis

@@ -1,5 +1,5 @@
 from config.abstractconfig import DBGConfig, Environment, yl
-from flask import Flask, send_from_directory, redirect
+from flask import Flask, send_from_directory, redirect, url_for
 from mkdocs import config
 from mkdocs.__main__ import build
 # import tempfile
@@ -28,11 +28,12 @@ def register_api_1_0(app: Flask):
         site_dir = recv(get_rcon(), name)
 
     @app.route('/v1.0/docs/', methods=['GET'])
-    def docs_index():
-        return redirect('./index.html')
-
     @app.route('/v1.0/docs/<path:filename>', methods=['GET'])
-    def get_doc(filename):
+    def get_doc(filename: str = None):
+        if filename is None:
+            filename = 'index.html'
+        if filename.endswith('/'):
+            filename += 'index.html'
         return send_from_directory(site_dir, filename)
 
     api.add_resource(DialogListResource, '/v1.0/users/<int:mobile>/dialogs_with/<int:other>')

@@ -253,6 +253,7 @@ class OrderListTest:
         set_field(json_, tasks)
         resp = requests.post(url, params=params, json=json_)
         check(resp)
+        return resp.json()['id']
 
 
 class OrderTest:
@@ -262,15 +263,19 @@ class OrderTest:
 
     @classmethod
     @link(OrderResource.patch)
-    def patch(cls, mobile, token, order_id, appid=default_appid, executor=None):
+    def patch(cls, mobile, token, order_id, receive=None, close=None, appid=default_appid):
         url = cls.url(mobile, order_id)
         params = {}
         set_field(params, token)
         set_field(params, appid)
-        set_field(params, executor)
+        set_field(params, receive)
+        set_field(params, close)
         resp = requests.patch(url, params=params)
         check(resp)
-        return resp.json()
+        try:
+            return resp.json()
+        except json.decoder.JSONDecodeError:
+            pass
 
 
 class DialogListTest:
@@ -415,7 +420,7 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
         header('Test Signup', 1)
         try:
             signup(mobile, get_code, partial(get_passwd, 1))
-        except Error as e:
+        except Error:
             pass
 
         # user login
@@ -446,16 +451,13 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
 
         header('OrderTest')
         header('Post order', 1)
-        OrderListTest.post(mobile, token, tasks=[
+        order_id = OrderListTest.post(mobile, token, tasks=[
             task('abc', 'aaa', 1, 1, point(12, 30, 'wwww'))
         ])
-
         header('Get relative order', 1)
         OrderListTest.get(mobile, token)
-
-        header('Get public order')
+        header('Get public order', 1)
         PublicOrderListTest.get()
-
         header('Relative order of another one')
         another_one_mobile = 16698066603
         try:
@@ -464,6 +466,12 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
             pass
         another_token = login_by_passwd(another_one_mobile, get_passwd(1))
         OrderListTest.get(another_one_mobile, another_token)
+        header('Receive order', 1)
+        OrderTest.patch(another_one_mobile, another_token, order_id, receive=True)
+        header('Cancel receive order', 1)
+        OrderTest.patch(another_one_mobile, another_token, order_id, receive=False)
+        header('Close order', 1)
+        OrderTest.patch(mobile, token, order_id, close='cancel')
 
         header('DialogTest')
         header('Send', 1)

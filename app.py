@@ -1,5 +1,4 @@
 from config.yilaoconfig import *
-from flask import Flask
 import logging
 from mysqlscript import iter_table, UserVersion
 from resource import *
@@ -43,7 +42,7 @@ mcon = connect_mysql(logger=logger)
 resource.util.get_mcon = lambda: mcon
 resource.util.real_get_rcon = lambda: rcon
 resource.util.logger = logger
-register_api_1_0(app)
+register_api(app)
 
 if __name__ == '__main__':
     app.run(ServerConfig.host, ServerConfig.port, True, use_reloader=False)

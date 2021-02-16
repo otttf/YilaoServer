@@ -35,13 +35,13 @@ class UserSchema(Schema):
 
 
 class ResourceSchema(Schema):
-    uuid = fields.Str(required=True)
+    uuid = fields.Str(dump_only=True)
     from_user = fields.Int(dump_only=True)
     create_at = fields.DateTime(dump_only=True)
 
 
 class DialogSchema(Schema):
-    id = fields.Int()
+    id = fields.Int(dump_only=True)
     content = fields.Str(required=True)
     from_user = fields.Int(dump_only=True)
     to_user = fields.Int(required=True)
@@ -49,7 +49,7 @@ class DialogSchema(Schema):
 
 
 class StoreSchema(Schema):
-    id = fields.Int()
+    id = fields.Int(dump_only=True)
     name = fields.Str(required=True, validate=varchar32)
     location = fields.Nested(PointSchema, allow_none=True)
     photo = fields.Int(allow_none=True)
@@ -57,7 +57,7 @@ class StoreSchema(Schema):
 
 
 class CommoditySchema(Schema):
-    id = fields.Int()
+    id = fields.Int(dump_only=True)
     name = fields.Str(required=True, validate=varchar32)
     store = fields.Str(required=True)
     on_offer = fields.Bool(required=True)
@@ -67,20 +67,20 @@ class CommoditySchema(Schema):
 
 
 class OrderSchema(Schema):
-    id = fields.Int()
+    id = fields.Int(dump_only=True)
     from_user = fields.Int(dump_only=True)
     destination = fields.Nested(PointSchema, allow_none=True)
     emergency_level = fields.Str(validate=lambda it: it in ['normal', 'urgent'])
     create_at = fields.DateTime(dump_only=True)
     receive_at = fields.DateTime(dump_only=True)
-    executor = fields.Int(allow_none=True)
+    executor = fields.Int(dump_only=True)
     close_at = fields.DateTime(dump_only=True)
     close_state = fields.Str(validate=lambda it: it in ['finish', 'cancel'])
     tasks = fields.List(fields.Nested(lambda: task_schema), required=True)
 
 
 class TaskSchema(Schema):
-    id = fields.Int()
+    id = fields.Int(dump_only=True)
     name = fields.Str(required=True, validate=varchar32)
     type = fields.Str(required=True, validate=varchar32)
     detail = fields.Str(allow_none=True, validate=text)

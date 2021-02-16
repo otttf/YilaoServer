@@ -23,7 +23,7 @@ class ResourceListResource(Resource):
             f.write(request.stream.read(ResourceConfig.Resource.chuck_size))
         with mycursor() as c:
             c.execute('insert into resource values (%s, %s, current_timestamp)', (uuid, mobile))
-        return resource_schema.dump({'uuid': uuid})
+        return resource_schema.dump({'uuid': uuid}), 201
 
 
 def get_public_resource(mobile, uuid):

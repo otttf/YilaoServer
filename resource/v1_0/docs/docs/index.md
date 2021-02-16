@@ -135,15 +135,7 @@ POST http://api.yilao.tk:5000/v1.0/users/$mobile/tokens?appid=df3b72a07a0a4fa185
 
 `$code`**：验证码**
 
-### 通过密码
-
-```
-POST http://api.yilao.tk:5000/v1.0/users/$mobile/tokens?appid=df3b72a07a0a4fa1854a48b543690eab&passwd=$passwd
-```
-
-`$passwd`**：用户密码**
-
-### 返回
+##### 返回
 
 `201`：成功，并且token会以json格式返回，
 
@@ -156,6 +148,18 @@ POST http://api.yilao.tk:5000/v1.0/users/$mobile/tokens?appid=df3b72a07a0a4fa185
 `$token`**：令牌**
 
 `401`：用户验证失败
+
+### 通过密码
+
+```
+POST http://api.yilao.tk:5000/v1.0/users/$mobile/tokens?appid=df3b72a07a0a4fa1854a48b543690eab&passwd=$passwd
+```
+
+`$passwd`**：用户密码**
+
+##### 返回
+
+同上
 
 ## 更新
 
@@ -192,6 +196,10 @@ PATCH http://api.yilao.tk:5000/v1.0/users/$mobile?appid=df3b72a07a0a4fa1854a48b5
 `$code`：验证码
 
 `$passwd`：密码
+
+##### 返回
+
+同上
 
 ## 获取
 
@@ -259,13 +267,136 @@ POST http://127.0.0.1:5000/v1.0/users/$mobile/orders?token=$token&appid=df3b72a0
 
 `$value...`**：值**
 
-## 聊天记录
+##### 返回
+
+`200`：成功
+
+## 更新
+
+### 接单/取消接单
+
+```
+PATCH http://127.0.0.1:15000/v1.0/users/$mobile/orders/$order_id?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab&receive=$receive
+```
+
+`$mobile`：接单者的手机号码
+
+`$order_id`：需要接单的订单id
+
+`$token`：登陆时获取到的令牌
+
+`$receive`：取值`true`或者`false`，是接单还是取消接单，取消接单只有接单不超过三分钟才能进行。
+
+### 完成/取消订单
+
+```
+PATCH http://127.0.0.1:15000/v1.0/users/$mobile/orders/$order_id?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab&close=$close
+```
+
+`$mobile`：手机号码
+
+`$order_id`：订单id
+
+`$token`：登陆时获取到的令牌
+
+`$close`：取值`finish`或者`cancel`，是完成还是取消订单。
+
+## 获取
+
+### 可接取的订单
+
+```
+GET http://127.0.0.1:5000/v1.0/public_orders
+```
+
+##### 返回
+
+`200`：成功，并且返回以下的json
+
+```
+[
+	{
+		订单1内容
+	},
+	{
+		订单2内容
+	},
+	...
+]
+```
+
+### 和自己有关的订单
+
+```
+GET http://127.0.0.1:5000/v1.0/users/$mobile/orders?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab
+```
+
+`$mobile`：手机号
+
+`$token`：令牌
+
+##### 返回
+
+同上
+
+# 聊天记录
 
 |   属性    |  类型  |     解释     |
 | :-------: | :----: | :----------: |
 |   uuid    | 字符串 |     uuid     |
 | from_user |  整数  | 来自哪位用户 |
 | create_at | 字符串 |   创建时间   |
+
+## 发送
+
+```
+POST http://127.0.0.1:5000/v1.0/users/$mobile/dialogs?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab
+
+{
+    "content": $content,
+    "to_user": $to_user
+}
+```
+
+`$mobile`：手机号
+
+`$token`：令牌
+
+`$content`：要发送的内容
+
+`$to_user`：要发送的用户
+
+##### 返回
+
+`201`：成功
+
+## 获取
+
+```
+GET http://127.0.0.1:5000/v1.0/users/$mobile/dialogs_with/$another_user?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab
+```
+
+`$mobile`：手机号
+
+`$another_user`：另一个用户
+
+`$token`：令牌
+
+##### 返回
+
+`200`：成功，并且返回以下的json
+
+```
+[
+	{
+		聊天记录1
+	},
+	{
+		聊天记录2
+	},
+	...
+]
+```
 
 # 资源
 
@@ -277,472 +408,40 @@ POST http://127.0.0.1:5000/v1.0/users/$mobile/orders?token=$token&appid=df3b72a0
 
 ## 新建
 
-# 测试
-
-**注意：**在测试中，列举的是完整过程，看起来每次都会申请token，但实际上token并不需要重复申请。
-
-## 用户注册
-
 ```
-==================== REQUEST =====================
-GET http://127.0.0.1:5000/v1.0/users/13927553153
-==================== RESPONSE ====================
-404 NOT FOUND
-====================== END =======================
+POST http://127.0.0.1:5000/v1.0/mobile/$mobile/resources?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab
+
+$body
 ```
 
-```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/sms
+`$mobile`：手机号
 
+`$token`：令牌
+
+`$body`：需要上传的文件的内容
+
+##### 返回
+
+`201`：成功，并且会返回其uuid
+
+```
 {
-    "appid": "df3b72a07a0a4fa1854a48b543690eab",
-    "mobile": 13927553153,
-    "method": "PUT",
-    "base_url": "http://127.0.0.1:5000/v1.0/users/13927553153"
+	"uuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 }
-==================== RESPONSE ====================
-201 CREATED
-====================== END =======================
 ```
 
-```
-==================== REQUEST =====================
-PUT http://127.0.0.1:5000/v1.0/users/13927553153?appid=df3b72a07a0a4fa1854a48b543690eab&code=1234
-
-{
-    "passwd": "12345679"
-}
-==================== RESPONSE ====================
-201 CREATED
-====================== END =======================
-```
-
-## 用户登录
-
-### 通过密码
+## 下载
 
 ```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/users/13927553153/tokens?passwd=12345679&appid=df3b72a07a0a4fa1854a48b543690eab
-==================== RESPONSE ====================
-201 CREATED
-
-{
-    "token": "64f821c1103d44a8b1750e1fbb840fa7"
-}
-====================== END =======================
+GET http://127.0.0.1:5000/v1.0/mobile/$mobile/resources/$uuid?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab
 ```
 
-### 通过验证码
+`$mobile`：手机号
 
-```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/sms
+`$uuid`：需要下载的文件的uuid
 
-{
-    "appid": "df3b72a07a0a4fa1854a48b543690eab",
-    "mobile": 13927553153,
-    "method": "POST",
-    "base_url": "http://127.0.0.1:5000/v1.0/users/13927553153/tokens"
-}
-==================== RESPONSE ====================
-201 CREATED
-====================== END =======================
-```
+`$token`：令牌
 
-```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/users/13927553153/tokens?code=1234&appid=df3b72a07a0a4fa1854a48b543690eab
-==================== RESPONSE ====================
-201 CREATED
+##### 返回
 
-{
-    "token": "3c9d640882cd4fa48590ee9731c4c664"
-}
-====================== END =======================
-```
-
-## 更新用户信息
-
-### 重要字段
-
-#### 通过密码
-
-```
-==================== REQUEST =====================
-PATCH http://127.0.0.1:5000/v1.0/users/13927553153?passwd=12345679
-
-{
-    "passwd": "12345680"
-}
-==================== RESPONSE ====================
-204 NO CONTENT
-====================== END =======================
-```
-
-#### 通过验证码
-
-```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/sms
-
-{
-    "appid": "df3b72a07a0a4fa1854a48b543690eab",
-    "mobile": 13927553153,
-    "method": "PATCH",
-    "base_url": "http://127.0.0.1:5000/v1.0/users/13927553153"
-}
-==================== RESPONSE ====================
-201 CREATED
-====================== END =======================
-```
-
-```
-==================== REQUEST =====================
-PATCH http://127.0.0.1:5000/v1.0/users/13927553153?code=1234&appid=df3b72a07a0a4fa1854a48b543690eab
-
-{
-    "passwd": "12345679"
-}
-==================== RESPONSE ====================
-204 NO CONTENT
-====================== END =======================
-```
-
-### 普通字段
-
-#### 通过token
-
-```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/users/13927553153/tokens?passwd=12345679&appid=df3b72a07a0a4fa1854a48b543690eab
-==================== RESPONSE ====================
-201 CREATED
-
-{
-    "token": "c443bee7e5464f70b564b0cf570c75a5"
-}
-====================== END =======================
-```
-
-```
-==================== REQUEST =====================
-PATCH http://127.0.0.1:5000/v1.0/users/13927553153?token=c443bee7e5464f70b564b0cf570c75a5&appid=df3b72a07a0a4fa1854a48b543690eab
-
-{
-    "default_location": {
-        "longitude": 12,
-        "latitude": 34,
-        "name": "abc"
-    }
-}
-==================== RESPONSE ====================
-204 NO CONTENT
-====================== END =======================
-```
-
-## 获取用户信息
-
-```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/users/13927553153/tokens?passwd=12345679&appid=df3b72a07a0a4fa1854a48b543690eab
-==================== RESPONSE ====================
-201 CREATED
-
-{
-    "token": "c443bee7e5464f70b564b0cf570c75a5"
-}
-====================== END =======================
-```
-
-```
-==================== REQUEST =====================
-GET http://127.0.0.1:5000/v1.0/users/13927553153?token=c443bee7e5464f70b564b0cf570c75a5&appid=df3b72a07a0a4fa1854a48b543690eab
-==================== RESPONSE ====================
-200 OK
-
-{
-    "mobile": 13927553153,
-    "sex": null,
-    "create_at": "2021-02-14T06:06:25",
-    "nickname": null,
-    "portrait": null,
-    "default_location": {
-        "longitude": 34.0,
-        "latitude": 12.0,
-        "name": "abc"
-    },
-    "mark": null
-}
-====================== END =======================
-```
-
-## 新建订单
-
-```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/users/13927553153/tokens?passwd=12345679&appid=df3b72a07a0a4fa1854a48b543690eab
-==================== RESPONSE ====================
-201 CREATED
-
-{
-    "token": "c443bee7e5464f70b564b0cf570c75a5"
-}
-====================== END =======================
-```
-
-```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/users/13927553153/orders?token=c443bee7e5464f70b564b0cf570c75a5&appid=df3b72a07a0a4fa1854a48b543690eab
-
-{
-    "tasks": [
-        {
-            "name": "abc",
-            "type": "aaa",
-            "count": 1,
-            "reward": 1,
-            "destination": {
-                "longitude": 12,
-                "latitude": 30,
-                "name": "wwww"
-            }
-        }
-    ]
-}
-==================== RESPONSE ====================
-201 CREATED
-====================== END =======================
-```
-
-## 获取和用户相关的订单
-
-```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/users/13927553153/tokens?passwd=12345679&appid=df3b72a07a0a4fa1854a48b543690eab
-==================== RESPONSE ====================
-201 CREATED
-
-{
-    "token": "c443bee7e5464f70b564b0cf570c75a5"
-}
-====================== END =======================
-```
-
-```
-==================== REQUEST =====================
-GET http://127.0.0.1:5000/v1.0/users/13927553153/orders?token=c443bee7e5464f70b564b0cf570c75a5&appid=df3b72a07a0a4fa1854a48b543690eab
-==================== RESPONSE ====================
-200 OK
-
-[
-    {
-        "emergency_level": "normal",
-        "close_at": null,
-        "destination": {
-            "longitude": 90.0,
-            "latitude": 0.0,
-            "name": null
-        },
-        "create_at": "2021-02-14T06:06:25",
-        "id": 1,
-        "executor": null,
-        "tasks": [
-            {
-                "in_at": null,
-                "destination": {
-                    "longitude": 30.0,
-                    "latitude": 12.0,
-                    "name": "wwww"
-                },
-                "detail": null,
-                "name": "abc",
-                "count": 1,
-                "id": 1,
-                "out_at": null,
-                "reward": 1.0,
-                "protected_info": null,
-                "type": "aaa"
-            }
-        ],
-        "receive_at": null,
-        "from_user": 13927553153,
-        "close_state": null
-    }
-]
-====================== END =======================
-```
-
-## 获取还没被接取的订单
-
-```
-==================== REQUEST =====================
-GET http://127.0.0.1:5000/v1.0/public_orders
-==================== RESPONSE ====================
-200 OK
-
-[
-    {
-        "emergency_level": "normal",
-        "close_at": null,
-        "destination": {
-            "longitude": 90.0,
-            "latitude": 0.0,
-            "name": null
-        },
-        "create_at": "2021-02-14T06:06:25",
-        "id": 1,
-        "executor": null,
-        "tasks": [
-            {
-                "in_at": null,
-                "destination": {
-                    "longitude": 30.0,
-                    "latitude": 12.0,
-                    "name": "wwww"
-                },
-                "detail": null,
-                "name": "abc",
-                "count": 1,
-                "id": 1,
-                "out_at": null,
-                "reward": 1.0,
-                "protected_info": null,
-                "type": "aaa"
-            }
-        ],
-        "receive_at": null,
-        "from_user": 13927553153,
-        "close_state": null
-    }
-]
-====================== END =======================
-```
-
-## 注册另一位用户：16698066603
-
-## 接单
-
-还没测试。
-
-## 取消订单/完成订单
-
-还没测试。
-
-## 发送信息
-
-```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/users/13927553153/tokens?passwd=12345679&appid=df3b72a07a0a4fa1854a48b543690eab
-==================== RESPONSE ====================
-201 CREATED
-
-{
-    "token": "c443bee7e5464f70b564b0cf570c75a5"
-}
-====================== END =======================
-```
-
-```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/users/13927553153/dialogs?token=c443bee7e5464f70b564b0cf570c75a5&appid=df3b72a07a0a4fa1854a48b543690eab
-
-{
-    "content": "hello!",
-    "to_user": 16698066603
-}
-==================== RESPONSE ====================
-201 CREATED
-====================== END =======================
-```
-
-## 另一位用户回复信息：hi!
-
-## 获取用户和另一个用户的交流
-
-```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/users/13927553153/tokens?passwd=12345679&appid=df3b72a07a0a4fa1854a48b543690eab
-==================== RESPONSE ====================
-201 CREATED
-
-{
-    "token": "c443bee7e5464f70b564b0cf570c75a5"
-}
-====================== END =======================
-```
-
-```
-==================== REQUEST =====================
-GET http://127.0.0.1:5000/v1.0/users/13927553153/dialogs_with/16698066603?token=c443bee7e5464f70b564b0cf570c75a5&appid=df3b72a07a0a4fa1854a48b543690eab
-==================== RESPONSE ====================
-200 OK
-
-[
-    {
-        "to_user": 16698066603,
-        "id": 1,
-        "content": "hello!",
-        "from_user": 13927553153,
-        "send_at": "2021-02-14T06:06:25"
-    },
-    {
-        "to_user": 13927553153,
-        "id": 2,
-        "content": "hi!",
-        "from_user": 16698066603,
-        "send_at": "2021-02-14T06:06:25"
-    }
-]
-====================== END =======================
-```
-
-## 新建资源
-
-```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/users/13927553153/tokens?passwd=12345679&appid=df3b72a07a0a4fa1854a48b543690eab
-==================== RESPONSE ====================
-201 CREATED
-
-{
-    "token": "c443bee7e5464f70b564b0cf570c75a5"
-}
-====================== END =======================
-```
-
-```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/mobile/13927553153/resources?token=c443bee7e5464f70b564b0cf570c75a5&appid=df3b72a07a0a4fa1854a48b543690eab
-==================== RESPONSE ====================
-200 OK
-
-{
-    "uuid": "9565fc6e-14f8-4880-9e29-5a759316cf4f"
-}
-====================== END =======================
-```
-
-## 下载资源
-
-```
-==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/users/13927553153/tokens?passwd=12345679&appid=df3b72a07a0a4fa1854a48b543690eab
-==================== RESPONSE ====================
-201 CREATED
-
-{
-    "token": "c443bee7e5464f70b564b0cf570c75a5"
-}
-====================== END =======================
-```
-
-```
-==================== REQUEST =====================
-GET http://127.0.0.1:5000/v1.0/mobile/13927553153/resources/9565fc6e-14f8-4880-9e29-5a759316cf4f?token=c443bee7e5464f70b564b0cf570c75a5&appid=df3b72a07a0a4fa1854a48b543690eab
-==================== RESPONSE ====================
-200 OK
-====================== END =======================
-```
-
+`200`：成功，并且文件会在body中返回

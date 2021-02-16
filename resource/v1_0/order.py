@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from flask import request, Response
 from flask_restful import Resource
-from schema import order_schema, task_schema
+from schema import order_schema, OrderSchema, task_schema
 from wrap import _use
 from ..util import dump_locations, curd_params, exc, mycursor, null_point
 from .validation import token_validate
@@ -75,7 +75,7 @@ class OrderListResource(Resource):
                 to_insert = curd_params(task, task_schema)
                 c.execute(f"insert into `task` set {to_insert[0]}", to_insert[1])
 
-        return Response(status=201)
+        return order_schema.dump({'id': order_id}), 201
 
 
 class OrderResource(Resource):
@@ -83,28 +83,45 @@ class OrderResource(Resource):
     def patch(self, mobile, order_id):
         """更新订单状态，注意patch只做订单被接受和订单被关闭的处理
         如果要修改订单信息，请使用delete+post"""
-        with mycursor() as c:
+        with mycursor(dictionary=True) as c:
             c.execute('select * from `order` where id=%s limit 1', (order_id,))
             order = c.fetchone()
             from_user = order['from_user']
             if mobile != from_user:
                 # 不是发布者，只能更新是否接受任务状态
-                if order['executor'] is None:
-                    executor = request.args.get('executor')
-                    c.execute('update `order` set receive_at=current_timestamp, executor=%s where id=%s',
-                              (executor, order_id))
-                elif order['executor'] == mobile:
-                    # 如果接受者是自己，那么三分钟内可以取消
-                    if datetime.utcnow() - order['receive_at'] < timedelta(minutes=3):
-                        c.execute('update `order` set receive_at=null, executor=null where id=%s', (order_id,))
+                receive = request.args.get('receive')
+                receive = receive.lower() if isinstance(receive, str) else receive
+                if receive == 'true':
+                    # 如果要接单
+                    if order['executor'] is None:
+                        c.execute('update `order` set receive_at=current_timestamp, executor=%s where id=%s',
+                                  (mobile, order_id))
                     else:
-                        return exc('超过三分钟，无法取消接单'), 400
+                        return exc('该订单已被接受'), 400
+                elif receive == 'false':
+                    # 如果要取消接单
+                    if order['executor'] == mobile:
+                        # 如果接受者是自己，那么三分钟内可以取消
+                        if datetime.utcnow() - order['receive_at'] < timedelta(minutes=3):
+                            c.execute('update `order` set receive_at=null, executor=null where id=%s', (order_id,))
+                        else:
+                            return exc('超过三分钟，无法取消接单'), 400
+                    else:
+                        return exc('订单已被其他人接受'), 400
                 else:
-                    # 如果任务已被接受
-                    return exc('任务已被其他人接受'), 400
+                    return exc('错误的值'), 400
             else:
                 # 否则是更新关闭订单的信息
-                # 如果有接受者，这个订单就是完成了，否则就是取消了
-                state = 'cancel' if order['receive_at'] is None else 'finish'
+                if order['close_state'] is not None:
+                    return exc('订单已关闭'), 400
+                close = request.args.get('close')
+                if close == 'cancel':
+                    # 希望取消订单
+                    if order['executor'] is not None:
+                        # 已有人接单
+                        if datetime.utcnow() - order['receive_at'] >= timedelta(minutes=3):
+                            # 时间超过三分钟
+                            return exc('已经有人接单超过三分钟，无法取消订单'), 400
                 c.execute('update `order` set close_at=current_timestamp, close_state=%s where id=%s',
-                          (state, order_id))
+                          (close, order_id))
+            return Response(status=204)

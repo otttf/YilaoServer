@@ -95,9 +95,8 @@ create table `order`
     spatial key (destination),
     constraint order_chk_receive check ((receive_at is null and executor is null) or
                                         (receive_at is not null and executor is not null)),
-    constraint order_chk_close check ((receive_at is null and close_at is null) or
-                                      (close_at is null and close_state is null) or
-                                      (receive_at is not null and close_at is not null and close_state is not null))
+    constraint order_chk_close check ((close_at is null and close_state is null) or
+                                      (close_at is not null and close_state is not null))
 );
 
 create table task
