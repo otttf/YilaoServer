@@ -24,12 +24,15 @@ class HaveAll:
 
 # mysql-connector-python可能会出现ImportError，所以仅尝试插入
 try:
+    from resource.v1_0.commodity import CommodityListResource,CommodityResource
     from resource.v1_0.dialog import DialogResource
     from resource.v1_0.order import PublicOrderListResource, OrderListResource, OrderResource
     from resource.v1_0.user import UserResource
     from resource.v1_0.validation import PasswdResource, SMSResource, TokenResource
 except ImportError:
     has_all = HaveAll()
+    CommodityListResource = has_all
+    CommodityResource = has_all
     DialogResource = has_all
     PublicOrderListResource = has_all
     OrderListResource = has_all
@@ -317,7 +320,7 @@ class DialogTest:
 class ResourceListTest:
     @staticmethod
     def url(mobile):
-        return f'{_prefix}/v1.0/mobile/{mobile}/resources'
+        return f'{_prefix}/v1.0/users/{mobile}/resources'
 
     @classmethod
     def post(cls, mobile, token, filename, appid=default_appid):
@@ -334,7 +337,7 @@ class ResourceListTest:
 class ResourceTest:
     @staticmethod
     def url(mobile, uuid):
-        return f'{_prefix}/v1.0/mobile/{mobile}/resources/{uuid}'
+        return f'{_prefix}/v1.0/users/{mobile}/resources/{uuid}'
 
     @classmethod
     def get(cls, mobile, token, uuid, appid=default_appid):
@@ -345,6 +348,43 @@ class ResourceTest:
         resp = requests.get(url, params=params)
         check(resp)
         return resp.content
+
+
+class CommodityListTest:
+    @staticmethod
+    def url(mobile):
+        return f'{_prefix}/v1.0/users/{mobile}/commodities'
+
+    @classmethod
+    @link(CommodityListResource.post)
+    def post(cls, mobile, token, name, price, detail=None, location=None, on_offer=None, appid=default_appid):
+        url = cls.url(mobile)
+        params = {}
+        set_field(params, token)
+        set_field(params, appid)
+        _json = {}
+        set_field(_json, name)
+        set_field(_json, price)
+        set_field(_json, detail)
+        set_field(_json, location)
+        set_field(_json, on_offer)
+        resp = requests.post(url, params=params, json=_json)
+        check(resp)
+        return resp.json()['id']
+
+
+class CommodityTest:
+    @staticmethod
+    def url(commodity_id):
+        return f'{_prefix}/v1.0/commodities/{commodity_id}'
+
+    @classmethod
+    @link(CommodityResource.get)
+    def get(cls, commodity_id):
+        url = cls.url(commodity_id)
+        resp = requests.get(url)
+        check(resp)
+        return resp.json()
 
 
 def signup(mobile, get_code, get_passwd):
@@ -492,5 +532,11 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
         uuid = ResourceListTest.post(mobile, token, __file__)
         header('Get', 1)
         ResourceTest.get(mobile, token, uuid)
+
+        header('CommodityTest')
+        header('Post', 1)
+        commodity_id = CommodityListTest.post(mobile, token, 'abc1234', 123)
+        header('Get', 1)
+        CommodityTest.get(commodity_id)
     except CheckError:
         logging.log(loglevel, 'Failed to pass the test')

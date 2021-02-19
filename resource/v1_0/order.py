@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from flask import request, Response
 from flask_restful import Resource
-from schema import order_schema, OrderSchema, task_schema
+from schema import order_schema, task_schema
 from wrap import _use
 from ..util import dump_locations, curd_params, exc, mycursor, null_point
 from .validation import token_validate

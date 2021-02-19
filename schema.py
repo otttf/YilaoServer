@@ -48,19 +48,12 @@ class DialogSchema(Schema):
     send_at = fields.DateTime(dump_only=True)
 
 
-class StoreSchema(Schema):
-    id = fields.Int(dump_only=True)
-    name = fields.Str(required=True, validate=varchar32)
-    location = fields.Nested(PointSchema, allow_none=True)
-    photo = fields.Int(allow_none=True)
-    from_user = fields.Int(dump_only=True)
-
-
 class CommoditySchema(Schema):
     id = fields.Int(dump_only=True)
     name = fields.Str(required=True, validate=varchar32)
-    store = fields.Str(required=True)
-    on_offer = fields.Bool(required=True)
+    from_user = fields.Int(dump_only=True)
+    location = fields.Nested(PointSchema, allow_none=True)
+    on_offer = fields.Bool()
     price = fields.Float(required=True)
     sales_volume = fields.Float(dump_only=True)
     photo = fields.Int(allow_none=True)
@@ -95,7 +88,6 @@ class TaskSchema(Schema):
 user_schema = UserSchema()
 resource_schema = ResourceSchema()
 dialog_schema = DialogSchema()
-store_schema = StoreSchema()
 commodity_schema = CommoditySchema()
 order_schema = OrderSchema()
 task_schema = TaskSchema()

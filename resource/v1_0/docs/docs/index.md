@@ -341,11 +341,13 @@ GET http://127.0.0.1:5000/v1.0/users/$mobile/orders?token=$token&appid=df3b72a07
 
 # 聊天记录
 
-|   属性    |  类型  |     解释     |
-| :-------: | :----: | :----------: |
-|   uuid    | 字符串 |     uuid     |
-| from_user |  整数  | 来自哪位用户 |
-| create_at | 字符串 |   创建时间   |
+|   属性    |  类型  |      解释      |
+| :-------: | :----: | :------------: |
+|    id     |  整数  |       id       |
+|  content  | 字符串 |      内容      |
+| from_user |  整数  |  来自哪位用户  |
+|  to_user  |  整数  | 发送给哪位用户 |
+|  send_at  | 字符串 |    发送时间    |
 
 ## 发送
 
@@ -409,7 +411,7 @@ GET http://127.0.0.1:5000/v1.0/users/$mobile/dialogs_with/$another_user?token=$t
 ## 新建
 
 ```
-POST http://127.0.0.1:5000/v1.0/mobile/$mobile/resources?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab
+POST http://127.0.0.1:5000/v1.0/users/$mobile/resources?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab
 
 $body
 ```
@@ -433,7 +435,7 @@ $body
 ## 下载
 
 ```
-GET http://127.0.0.1:5000/v1.0/mobile/$mobile/resources/$uuid?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab
+GET http://127.0.0.1:5000/v1.0/users/$mobile/resources/$uuid?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab
 ```
 
 `$mobile`：手机号
@@ -445,3 +447,44 @@ GET http://127.0.0.1:5000/v1.0/mobile/$mobile/resources/$uuid?token=$token&appid
 ##### 返回
 
 `200`：成功，并且文件会在body中返回
+
+# 商品
+
+|   属性    |    类型    |     解释     |
+| :-------: | :--------: | :----------: |
+|    id     |    整数    |      id      |
+|   name    |   字符串   |   商品名字   |
+|  detail   |   字符串   |   商品描述   |
+| from_user |    整数    | 来自哪位用户 |
+| location  |   Point    |     定位     |
+| on_offer  |    bool    | 是否还在售卖 |
+|   price   |   浮点数   |     价格     |
+|   photo   | 资源的uuid |   商品图片   |
+
+## 新建
+
+```
+POST http://127.0.0.1:15000/v1.0/users/$mobile/commodities?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab
+
+{
+    $key1: $value1, 
+	$key2: $value2,
+	...
+}
+```
+
+`$mobile`：手机号码
+
+`$token`：登陆时获取到的令牌
+
+`$key...`**：字段**
+
+`$value...`**：值**
+
+## 获取
+
+```
+GET http://127.0.0.1:15000/v1.0/commodities/$commodity_id
+```
+
+`$commodity_id`：商品的id

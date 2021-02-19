@@ -52,29 +52,18 @@ create table dialog
     foreign key (to_user) references user (mobile)
 );
 
-create table store
-(
-    id            int unsigned primary key auto_increment,
-    name          varchar(32)     not null,
-    location      point srid 4326 not null comment 'null = point(0, 90)',
-    location_name varchar(64),
-    photo         char(36),
-    from_user     bigint unsigned,
-    foreign key (photo) references resource (uuid),
-    foreign key (from_user) references user (mobile),
-    spatial key (location)
-);
-
 create table commodity
 (
-    id           int unsigned primary key auto_increment,
-    name         varchar(32)             not null,
-    store        int unsigned            not null,
-    on_offer     bool                    not null default false,
-    price        decimal(16, 2) unsigned not null,
-    sales_volume int unsigned            not null default 0,
-    photo        char(36),
-    foreign key (store) references store (id),
+    id            int unsigned primary key auto_increment,
+    name          varchar(32)             not null,
+    detail        text,
+    from_user     bigint unsigned,
+    location      point srid 4326         not null comment 'null = point(0, 90)',
+    location_name varchar(64),
+    on_offer      bool                    not null default false,
+    price         decimal(16, 2) unsigned not null,
+    sales_volume  int unsigned            not null default 0,
+    photo         char(36),
     foreign key (photo) references resource (uuid)
 );
 
