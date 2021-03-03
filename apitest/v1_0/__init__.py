@@ -498,7 +498,7 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
         header('Test patch common', 1)
         header('Patch name', 2)
         token = login_by_passwd(mobile, get_passwd(1))
-        UserTest.patch(mobile, token, appid=default_appid, default_location=point(12, 34, 'abc'))
+        # UserTest.patch(mobile, token, appid=default_appid, default_location=point(12, 34, 'abc'))
 
         # get user info
         header('Get Info', 1)

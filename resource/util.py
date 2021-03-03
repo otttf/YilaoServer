@@ -81,7 +81,7 @@ def curd_params(di: dict, schema: Schema):
 
 def to_readable_location(di: dict, name):
     # mysql空间类型的内部存储结构SRID(4)+WKB(21)，只需要后面21位
-    if name in di:
+    if name in di and di[name] is not None:
         b = bytes(di[name][4:])
         point = wkb.loads(b)
         longitude = point.xy[0][0]
