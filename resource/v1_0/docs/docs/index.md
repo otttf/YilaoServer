@@ -73,17 +73,24 @@ POST http://api.yilao.tk:5000/v1.0/sms
 
 # 用户
 
-|       属性       |  类型  |           限制           |     解释     |
-| :--------------: | :----: | :----------------------: | :----------: |
-|      mobile      |  整数  |       手机号码格式       |    手机号    |
-|      passwd      | 字符串 |                          |     密码     |
-|     nickname     | 字符串 |                          |     昵称     |
-|       sex        | 字符串 |       male或female       |     性别     |
-|     portrait     |  整数  | 必须是自己所拥有的资源id |     头像     |
-| default_location | Point  |                          | 用户默认地址 |
-|    create_at     | 字符串 |                          |   注册日期   |
+|       属性       |  类型  |           限制           |         解释         |
+| :--------------: | :----: | :----------------------: | :------------------: |
+|      mobile      |  整数  |       手机号码格式       |        手机号        |
+|      passwd      | 字符串 |                          |         密码         |
+|     nickname     | 字符串 |                          |         昵称         |
+|       sex        | 字符串 |       male或female       |         性别         |
+|     portrait     |  整数  | 必须是自己所拥有的资源id |         头像         |
+| default_location | Point  |                          |     用户默认地址     |
+|    create_at     | 字符串 |                          | 注册日期（无需上传） |
+|     id_name      | 字符串 |                          |      认证的名字      |
+|    id_school     | 字符串 |                          |      认证的学校      |
+|     id_photo     | 字符串 |     mobile=0的资源ID     |      认证的图片      |
 
 ## 注册
+
+##### 1. 上传认证图片
+
+**$mobile=0**
 
 ##### 1. 发送验证码
 
@@ -97,7 +104,9 @@ POST http://api.yilao.tk:5000/v1.0/sms
 PUT http://api.yilao.tk:5000/v1.0/users/$mobile?appid=df3b72a07a0a4fa1854a48b543690eab&code=$code
 
 {
-	"passwd": $passwd
+	$key1: $value1, 
+	$key2: $value2,
+	...
 }
 ```
 
@@ -105,7 +114,9 @@ PUT http://api.yilao.tk:5000/v1.0/users/$mobile?appid=df3b72a07a0a4fa1854a48b543
 
 `$code`**：验证码**
 
-`$passwd`**：用户要设置的密码**
+`$key...`**：用户字段（passwd字段为必须的）**
+
+`$value...`**：字段值**
 
 ##### 返回
 
@@ -179,7 +190,7 @@ PATCH http://api.yilao.tk:5000/v1.0/users/$mobile?appid=df3b72a07a0a4fa1854a48b5
 
 `$key...`**：用户字段**
 
-`$value...`**：字段值**
+`$value...`**：字段值（不能包含passwd等重要字段）**
 
 `$token`**：令牌**
 
@@ -219,24 +230,25 @@ GET http://api.yilao.tk:5000/v1.0/users/$mobile?appid=df3b72a07a0a4fa1854a48b543
 
 # 订单
 
-|      属性       |   类型   |      限制      |           解释           |
-| :-------------: | :------: | :------------: | :----------------------: |
-|       id        |   整数   |                |          订单id          |
-|    from_user    |   整数   |                |    哪个用户创建的订单    |
-|   destination   |  Point   |                | 完成所有任务后去哪里交付 |
-| emergency_level |  字符串  | normal或urgent |         紧急程度         |
-|    create_at    |  字符串  |                |       创建订单时间       |
-|   receive_at    |  字符串  |                |       接受订单时间       |
-|    executor     |   整数   |                |          执行者          |
-|    close_at     |  字符串  |                |       关闭订单时间       |
-|   close_state   |  字符串  |                |        关闭的状态        |
-|      tasks      | Task列表 |                |         任务列表         |
+|      属性       |   类型   |      限制      |              解释              |
+| :-------------: | :------: | :------------: | :----------------------------: |
+|       id        |   整数   |                |       订单id（无需上传）       |
+|    from_user    |   整数   |  手机号码格式  | 哪个用户创建的订单（无需上传） |
+|      phone      |   整数   |  手机号码格式  |             联系人             |
+|   destination   |  Point   |                |    完成所有任务后去哪里交付    |
+| emergency_level |  字符串  | normal或urgent |            紧急程度            |
+|    create_at    |  字符串  |                |    创建订单时间（无需上传）    |
+|   receive_at    |  字符串  |                |    接受订单时间（无需上传）    |
+|    executor     |   整数   |  手机号码格式  |             执行者             |
+|    close_at     |  字符串  |                |    关闭订单时间（无需上传）    |
+|   close_state   |  字符串  | finish或cancel |           关闭的状态           |
+|      tasks      | Task列表 |                |            任务列表            |
 
 ## Task类型
 
 |      属性      |  类型  |                             解释                             |
 | :------------: | :----: | :----------------------------------------------------------: |
-|       id       |  整数  |                            表单id                            |
+|       id       |  整数  |              表单id（暂时没有用处）（无需上传）              |
 |      name      | 字符串 |                            任务名                            |
 |      type      | 字符串 |                           任务类型                           |
 |     detail     | 字符串 |                           任务描述                           |
@@ -244,8 +256,8 @@ GET http://api.yilao.tk:5000/v1.0/users/$mobile?appid=df3b72a07a0a4fa1854a48b543
 |  destination   | Point  |                        任务的目的地址                        |
 |     count      |  整数  |                           执行次数                           |
 |     reward     | 浮点数 |                             奖赏                             |
-|     in_at      | 字符串 | 用户借出资源的时间（做某项任务时可能需要用户给的某些资源，因此有一个借出时间） |
-|     out_at     | 字符串 | 用户收回资源的时间（同理，资源使用完成后用户可能会有一个收回的时候） |
+|     out_at     | 字符串 | 用户借出资源的时间（做某项任务时可能需要用户给的某些资源，因此有一个借出时间） |
+|     in_at      | 字符串 | 用户收回资源的时间（同理，资源使用完成后用户可能会有一个收回的时候） |
 
 ## 新建
 
@@ -341,13 +353,13 @@ GET http://127.0.0.1:5000/v1.0/users/$mobile/orders?token=$token&appid=df3b72a07
 
 # 聊天记录
 
-|   属性    |  类型  |      解释      |
-| :-------: | :----: | :------------: |
-|    id     |  整数  |       id       |
-|  content  | 字符串 |      内容      |
-| from_user |  整数  |  来自哪位用户  |
-|  to_user  |  整数  | 发送给哪位用户 |
-|  send_at  | 字符串 |    发送时间    |
+|   属性    |  类型  |         解释         |
+| :-------: | :----: | :------------------: |
+|    id     |  整数  |    id（无需上传）    |
+|  content  | 字符串 |         内容         |
+| from_user |  整数  |     来自哪位用户     |
+|  to_user  |  整数  |    发送给哪位用户    |
+|  send_at  | 字符串 | 发送时间（无需上传） |
 
 ## 发送
 
@@ -402,11 +414,12 @@ GET http://127.0.0.1:5000/v1.0/users/$mobile/dialogs_with/$another_user?token=$t
 
 # 资源
 
-|   属性    |  类型  |     解释     |
-| :-------: | :----: | :----------: |
-|   uuid    | 字符串 |     uuid     |
-| from_user |  整数  | 来自哪位用户 |
-| create_at | 字符串 |   创建时间   |
+|   属性    |  类型  |         解释         |
+| :-------: | :----: | :------------------: |
+|   uuid    | 字符串 |   uuid（无需上传）   |
+|   name    | 字符串 |  名字（暂时未使用）  |
+| from_user |  整数  |     来自哪位用户     |
+| create_at | 字符串 | 创建时间（无需上传） |
 
 ## 新建
 
@@ -416,7 +429,7 @@ POST http://127.0.0.1:5000/v1.0/users/$mobile/resources?token=$token&appid=df3b7
 $body
 ```
 
-`$mobile`：手机号
+`$mobile`：手机号或0，mobile=0时无需进行认证
 
 `$token`：令牌
 

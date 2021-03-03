@@ -24,7 +24,7 @@ class HaveAll:
 
 # mysql-connector-python可能会出现ImportError，所以仅尝试插入
 try:
-    from resource.v1_0.commodity import CommodityListResource,CommodityResource
+    from resource.v1_0.commodity import CommodityListResource, CommodityResource
     from resource.v1_0.dialog import DialogResource
     from resource.v1_0.order import PublicOrderListResource, OrderListResource, OrderResource
     from resource.v1_0.user import UserResource
@@ -166,22 +166,28 @@ class UserTest:
 
     @classmethod
     @link(UserResource.put)
-    def put(cls, mobile, code, passwd, appid=default_appid):
+    def put(cls, mobile, code, passwd, appid=default_appid, nickname=None, sex=None, portrait=None,
+            default_location=None, id_name=None, id_school=None, id_photo=None):
         url = cls.url(mobile)
-        params = {
-            'appid': appid,
-            'code': code
-        }
-        json_ = {
-            'passwd': passwd
-        }
+        params = {}
+        set_field(params, code)
+        set_field(params, appid)
+        json_ = {}
+        set_field(json_, passwd)
+        set_field(json_, nickname)
+        set_field(json_, sex)
+        set_field(json_, portrait)
+        set_field(json_, default_location)
+        set_field(json_, id_name)
+        set_field(json_, id_school)
+        set_field(json_, id_photo)
         resp = requests.put(url, params=params, json=json_)
         check(resp)
 
     @classmethod
     @link(UserResource.patch)
     def patch(cls, mobile, token=None, passwd=None, code=None, appid=None, new_passwd=None, nickname=None, sex=None,
-              portrait=None, default_location=None):
+              portrait=None, default_location=None, id_name=None, id_school=None, id_photo=None):
         url = cls.url(mobile)
         params = {}
         set_field(params, token)
@@ -194,6 +200,9 @@ class UserTest:
         set_field(json_, sex)
         set_field(json_, portrait)
         set_field(json_, default_location)
+        set_field(json_, id_name)
+        set_field(json_, id_school)
+        set_field(json_, id_photo)
         resp = requests.patch(url, params=params, json=json_)
         check(resp)
 
@@ -245,12 +254,13 @@ class OrderListTest:
 
     @classmethod
     @link(OrderListResource.post)
-    def post(cls, mobile, token, appid=default_appid, destination=None, emergency_level=None, tasks=None):
+    def post(cls, mobile, token, appid=default_appid, phone=None, destination=None, emergency_level=None, tasks=None):
         url = cls.url(mobile)
         params = {}
         set_field(params, token)
         set_field(params, appid)
         json_ = {}
+        set_field(json_, phone)
         set_field(json_, destination)
         set_field(json_, emergency_level)
         set_field(json_, tasks)
@@ -387,14 +397,16 @@ class CommodityTest:
         return resp.json()
 
 
-def signup(mobile, get_code, get_passwd):
+def signup(mobile, get_code, get_passwd, nickname=None, sex=None, portrait=None, default_location=None, id_name=None,
+           id_school=None, id_photo=None):
     try:
         UserTest.get(mobile, appid=None)
         raise Error(f'{mobile} has been signup')
     except CheckError as e:
         if e.code == 404:
             SMSTest.post(mobile, 'PUT', UserTest.url(mobile))
-            UserTest.put(mobile, get_code(), get_passwd())
+            UserTest.put(mobile, get_code(), get_passwd(), default_appid, nickname, sex, portrait, default_location,
+                         id_name, id_school, id_photo)
         else:
             raise
 
@@ -455,11 +467,14 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
         requests.api.request = partial(requests.api.request, proxies=proxies)
     logging.basicConfig(format='%(message)s', level=loglevel, stream=sys.stdout)
 
+    # 新建资源
+    photo_uuid = ResourceListTest.post(0, None, __file__)
+
     try:
         header('Usertest')
         header('Test Signup', 1)
         try:
-            signup(mobile, get_code, partial(get_passwd, 1))
+            signup(mobile, get_code, partial(get_passwd, 1), 'hello', 'male', None, None, 'me', 'school', photo_uuid)
         except Error:
             pass
 
@@ -491,7 +506,7 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
 
         header('OrderTest')
         header('Post order', 1)
-        order_id = OrderListTest.post(mobile, token, tasks=[
+        order_id = OrderListTest.post(mobile, token, default_appid, 15466666, tasks=[
             task('abc', 'aaa', 1, 1, point(12, 30, 'wwww'))
         ])
         header('Get relative order', 1)

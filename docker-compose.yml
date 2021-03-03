@@ -7,6 +7,8 @@ services:
     depends_on:
       - mysql
       - redis
+      - adminer
+      - phpredisadmin
   mysql:
     image: mysql
     environment:

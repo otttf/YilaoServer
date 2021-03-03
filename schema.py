@@ -1,6 +1,5 @@
 from functools import partial
 from marshmallow import Schema, fields
-import re
 
 __all__ = ['PointSchema', 'UserSchema', 'ResourceSchema', 'DialogSchema', 'StoreSchema', 'CommoditySchema',
            'OrderSchema', 'user_schema', 'resource_schema', 'dialog_schema', 'store_schema', 'commodity_schema',
@@ -23,8 +22,7 @@ class PointSchema(Schema):
 
 
 class UserSchema(Schema):
-    mobile_pattern = re.compile(r'^1[3-9]\d{9}')
-    mobile = fields.Int(validate=lambda it: UserSchema.mobile_pattern.match(str(it)))
+    mobile = fields.Int()
     passwd = fields.Str(load_only=True, validate=lambda it: 8 <= len(it) <= 16)
     nickname = fields.Str(validate=varchar32)
     sex = fields.Str(allow_none=True, validate=lambda it: it in ['male', 'female'])
@@ -32,10 +30,14 @@ class UserSchema(Schema):
     default_location = fields.Nested(PointSchema, allow_none=True)
     mark = fields.Str(dump_only=True, allow_none=True, validate=lambda it: it in ['test'])
     create_at = fields.DateTime(dump_only=True)
+    id_name = fields.Str(validate=varchar32)
+    id_school = fields.Str(validate=varchar32)
+    id_photo = fields.Str(validate=lambda it: len(it) == 36)
 
 
 class ResourceSchema(Schema):
     uuid = fields.Str(dump_only=True)
+    name = fields.Str(validate=varchar32)
     from_user = fields.Int(dump_only=True)
     create_at = fields.DateTime(dump_only=True)
 
@@ -62,6 +64,7 @@ class CommoditySchema(Schema):
 class OrderSchema(Schema):
     id = fields.Int(dump_only=True)
     from_user = fields.Int(dump_only=True)
+    phone = fields.Int()
     destination = fields.Nested(PointSchema, allow_none=True)
     emergency_level = fields.Str(validate=lambda it: it in ['normal', 'urgent'])
     create_at = fields.DateTime(dump_only=True)

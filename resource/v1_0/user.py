@@ -20,14 +20,13 @@ class UserResource(Resource):
             return user_schema.dump(res)
 
     @sms_validate
-    def put(self, mobile, partial_user_schema=UserSchema(only=('passwd',))):
-        mobile = user_schema.load({'mobile': mobile}, partial=True)['mobile']
-        passwd = partial_user_schema.loads(request.data.decode())['passwd']
-
+    def put(self, mobile):
+        data = user_schema.loads(request.data.decode())
+        data['mobile'] = int(mobile)
+        data['passwd'] = hash_passwd(data['passwd'])
         with mycursor() as c:
-            c.execute('insert into user(mobile, passwd, default_location) '
-                      f'values (%s, %s, {sql_null_point})',
-                      (mobile, hash_passwd(passwd)))
+            to_insert = curd_params(data, user_schema)
+            c.execute(f'insert into user set {to_insert[0]}', to_insert[1])
             return Response(status=201)
 
     def patch(self, mobile, partial_user_schema=UserSchema(exclude=('mobile',), partial=True)):

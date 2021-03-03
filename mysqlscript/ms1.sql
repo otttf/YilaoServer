@@ -8,7 +8,10 @@ create table user
     default_location      point srid 4326,
     default_location_name varchar(64),
     mark                  set ('test') comment '特殊标记：用来给用户增加一系列状态',
-    create_at             timestamp not null default current_timestamp
+    create_at             timestamp not null default current_timestamp,
+    id_name               varchar(32),
+    id_school             varchar(32),
+    id_photo              char(36)
 );
 
 # 用户登录令牌
@@ -32,6 +35,7 @@ create event token_event_auto_clear on schedule every 1 hour do delete
 create table resource
 (
     uuid      char(36) primary key,
+    name      varchar(32),
 #     visibility enum ('public', '') default 'public', # 可见性
     from_user bigint unsigned not null,
     create_at timestamp       not null default current_timestamp,
@@ -71,6 +75,7 @@ create table `order`
 (
     id               int unsigned primary key auto_increment,
     from_user        bigint unsigned           not null,
+    phone            bigint unsigned,
     destination      point srid 4326           not null comment '交付地点，null = point(0, 90)',
     destination_name varchar(64),
     emergency_level  enum ('normal', 'urgent') not null default 'normal',
