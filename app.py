@@ -1,5 +1,5 @@
 from config.yilaoconfig import *
-from flask import request
+from flask import request, Response
 import logging
 import json
 from mysqlscript import iter_table, UserVersion
@@ -47,13 +47,26 @@ resource.util.logger = logger
 register_api(app)
 
 
-@app.before_request
-def output_body():
+@app.after_request
+def output_body(response: Response):
     if len(request.data) != 0:
         try:
+            logger.debug(' Request Body '.center(50, '='))
             logger.debug(json.dumps(json.loads(request.data.decode()), indent=4))
         except json.JSONDecodeError:
-            logger.debug('non a json object')
+            logger.debug('bytes object')
+    try:
+        if len(response.data) != 0:
+            try:
+                logger.debug(' Response Body '.center(50, '='))
+                logger.debug(json.dumps(json.loads(response.data.decode()), indent=4))
+            except json.JSONDecodeError:
+                logger.debug('bytes object')
+    except RuntimeError:
+        # send_from_directory
+        logger.debug(' Response Body '.center(50, '='))
+        logger.debug('file')
+    return response
 
 
 if __name__ == '__main__':
