@@ -1,9 +1,11 @@
-from flask import request, Response
 from flask_restful import Resource
 from schema import UserSchema, user_schema
+from .resource import get_path
 from wrap import _use
-from ..util import dump_locations, hash_passwd, curd_params, mycursor, sql_null_point
+from ..util import *
 from .validation import or_, passwd_validate, sms_validate, test, token_validate
+import shutil
+import os
 
 
 class UserResource(Resource):
@@ -14,8 +16,8 @@ class UserResource(Resource):
             res = c.fetchone()
             if res is None:
                 return Response(status=404)
-            if not test(token_validate, mobile=mobile):
-                return Response(status=401)
+            # if not test(token_validate, mobile=mobile):
+            #     return Response(status=401)
             dump_locations(res, user_schema)
             return user_schema.dump(res)
 
@@ -23,7 +25,17 @@ class UserResource(Resource):
     def put(self, mobile):
         data = user_schema.loads(request.data.decode())
         data['mobile'] = int(mobile)
+        if 'passwd' not in data:
+            return exc('need passwd field.')
         data['passwd'] = hash_passwd(data['passwd'])
+        if 'id_photo' in data:
+            src = f"{get_path(0)}/{data['id_photo']}"
+            dst_path = get_path(mobile)
+            if not os.path.exists(dst_path):
+                os.makedirs(dst_path)
+            dst = f"{dst_path}/{data['id_photo']}"
+            shutil.move(src, dst)
+
         with mycursor() as c:
             to_insert = curd_params(data, user_schema)
             c.execute(f'insert into user set {to_insert[0]}', to_insert[1])

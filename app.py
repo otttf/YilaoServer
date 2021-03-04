@@ -49,23 +49,24 @@ register_api(app)
 
 @app.after_request
 def output_body(response: Response):
+    width = 50
+    logger.debug(' Request Body '.center(width, '='))
     if len(request.data) != 0:
         try:
-            logger.debug(' Request Body '.center(50, '='))
             logger.debug(json.dumps(json.loads(request.data.decode()), indent=4))
         except json.JSONDecodeError:
             logger.debug('bytes object')
+    logger.debug(' Response Body '.center(width, '='))
     try:
         if len(response.data) != 0:
             try:
-                logger.debug(' Response Body '.center(50, '='))
                 logger.debug(json.dumps(json.loads(response.data.decode()), indent=4))
             except json.JSONDecodeError:
                 logger.debug('bytes object')
     except RuntimeError:
         # send_from_directory
-        logger.debug(' Response Body '.center(50, '='))
         logger.debug('file')
+    logger.debug(' END '.center(width, '='))
     return response
 
 
