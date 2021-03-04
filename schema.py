@@ -1,9 +1,8 @@
 from functools import partial
 from marshmallow import Schema, fields
 
-__all__ = ['PointSchema', 'UserSchema', 'ResourceSchema', 'DialogSchema', 'StoreSchema', 'CommoditySchema',
-           'OrderSchema', 'user_schema', 'resource_schema', 'dialog_schema', 'store_schema', 'commodity_schema',
-           'order_schema', 'task_schema']
+__all__ = ['PointSchema', 'UserSchema', 'ResourceSchema', 'DialogSchema', 'CommoditySchema', 'OrderSchema',
+           'user_schema', 'resource_schema', 'dialog_schema', 'commodity_schema', 'order_schema', 'task_schema']
 
 
 def varchar(s, n):
@@ -44,19 +43,19 @@ class ResourceSchema(Schema):
 
 class DialogSchema(Schema):
     id = fields.Int(dump_only=True)
-    content = fields.Str(required=True)
+    content = fields.Str()
     from_user = fields.Int(dump_only=True)
-    to_user = fields.Int(required=True)
+    to_user = fields.Int()
     send_at = fields.DateTime(dump_only=True)
 
 
 class CommoditySchema(Schema):
     id = fields.Int(dump_only=True)
-    name = fields.Str(required=True, validate=varchar32)
+    name = fields.Str(validate=varchar32)
     from_user = fields.Int(dump_only=True)
     location = fields.Nested(PointSchema, allow_none=True)
     on_offer = fields.Bool()
-    price = fields.Float(required=True)
+    price = fields.Float()
     sales_volume = fields.Float(dump_only=True)
     photo = fields.Int(allow_none=True)
 
@@ -72,18 +71,18 @@ class OrderSchema(Schema):
     executor = fields.Int(dump_only=True)
     close_at = fields.DateTime(dump_only=True)
     close_state = fields.Str(validate=lambda it: it in ['finish', 'cancel'])
-    tasks = fields.List(fields.Nested(lambda: task_schema), required=True)
+    tasks = fields.List(fields.Nested(lambda: task_schema), )
 
 
 class TaskSchema(Schema):
     id = fields.Int(dump_only=True)
-    name = fields.Str(required=True, validate=varchar32)
-    type = fields.Str(required=True, validate=varchar32)
+    name = fields.Str(validate=varchar32)
+    type = fields.Str(validate=varchar32)
     detail = fields.Str(allow_none=True, validate=text)
     protected_info = fields.Str(allow_none=True, validate=text)
     destination = fields.Nested(PointSchema, allow_none=True)
-    count = fields.Int(required=True)
-    reward = fields.Float(required=True)
+    count = fields.Int()
+    reward = fields.Float()
     in_at = fields.DateTime(allow_none=True)
     out_at = fields.DateTime(allow_none=True)
 

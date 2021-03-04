@@ -8,7 +8,7 @@ create table user
     default_location      point srid 4326,
     default_location_name varchar(64),
     mark                  set ('test') comment '特殊标记：用来给用户增加一系列状态',
-    create_at             timestamp not null default current_timestamp,
+    create_at             timestamp default current_timestamp,
     id_name               varchar(32),
     id_school             varchar(32),
     id_photo              char(36)
@@ -37,8 +37,8 @@ create table resource
     uuid      char(36) primary key,
     name      varchar(32),
 #     visibility enum ('public', '') default 'public', # 可见性
-    from_user bigint unsigned not null,
-    create_at timestamp       not null default current_timestamp,
+    from_user bigint unsigned,
+    create_at timestamp default current_timestamp,
     foreign key (from_user) references user (mobile)
 );
 
@@ -48,10 +48,10 @@ alter table user
 create table dialog
 (
     id        int unsigned primary key auto_increment,
-    content   text      not null,
+    content   text,
     from_user bigint unsigned,
     to_user   bigint unsigned,
-    send_at   timestamp not null default current_timestamp,
+    send_at   timestamp default current_timestamp,
     foreign key (from_user) references user (mobile),
     foreign key (to_user) references user (mobile)
 );
@@ -59,14 +59,14 @@ create table dialog
 create table commodity
 (
     id            int unsigned primary key auto_increment,
-    name          varchar(32)             not null,
+    name          varchar(32),
     detail        text,
     from_user     bigint unsigned,
-    location      point srid 4326         not null comment 'null = point(0, 90)',
+    location      point srid 4326 not null comment 'null = point(0, 90)',
     location_name varchar(64),
-    on_offer      bool                    not null default false,
-    price         decimal(16, 2) unsigned not null,
-    sales_volume  int unsigned            not null default 0,
+    on_offer      bool         default false,
+    price         decimal(16, 2) unsigned,
+    sales_volume  int unsigned default 0,
     photo         char(36),
     foreign key (photo) references resource (uuid)
 );
@@ -74,39 +74,35 @@ create table commodity
 create table `order`
 (
     id               int unsigned primary key auto_increment,
-    from_user        bigint unsigned           not null,
+    from_user        bigint unsigned,
     phone            bigint unsigned,
-    destination      point srid 4326           not null comment '交付地点，null = point(0, 90)',
+    destination      point srid 4326 not null comment '交付地点，null = point(0, 90)',
     destination_name varchar(64),
-    emergency_level  enum ('normal', 'urgent') not null default 'normal',
-    create_at        timestamp                 not null default current_timestamp,
+    emergency_level  enum ('normal', 'urgent') default 'normal',
+    create_at        timestamp                 default current_timestamp,
     receive_at       timestamp,
     executor         bigint unsigned,
     close_at         timestamp,
     close_state      enum ('finish', 'cancel'),
     foreign key (from_user) references user (mobile),
     foreign key (executor) references user (mobile),
-    spatial key (destination),
-    constraint order_chk_receive check ((receive_at is null and executor is null) or
-                                        (receive_at is not null and executor is not null)),
-    constraint order_chk_close check ((close_at is null and close_state is null) or
-                                      (close_at is not null and close_state is not null))
+    spatial key (destination)
 );
 
 create table task
 (
     id               int unsigned primary key auto_increment,
-    name             varchar(32)             not null,
-    type             varchar(32)             not null,
+    name             varchar(32),
+    type             varchar(32),
     category         varchar(32),
     detail           text,
     protected_info   text,
     photo            char(36),
-    `order`          int unsigned            not null,
-    destination      point srid 4326         not null comment '任务地点，null = point(0, 90)',
+    `order`          int unsigned,
+    destination      point srid 4326 not null  comment '任务地点，null = point(0, 90)',
     destination_name varchar(64),
-    count            int unsigned            not null comment '需要物品的数量',
-    reward           decimal(16, 2) unsigned not null,
+    count            int unsigned comment '需要物品的数量',
+    reward           decimal(16, 2) unsigned,
     in_at            timestamp,
     out_at           timestamp,
     foreign key (photo) references resource (uuid),
