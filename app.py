@@ -1,5 +1,7 @@
 from config.yilaoconfig import *
+from flask import request
 import logging
+import json
 from mysqlscript import iter_table, UserVersion
 from resource import *
 import resource.util
@@ -43,6 +45,16 @@ resource.util.get_mcon = lambda: mcon
 resource.util.real_get_rcon = lambda: rcon
 resource.util.logger = logger
 register_api(app)
+
+
+@app.before_request
+def output_body():
+    if len(request.data) != 0:
+        try:
+            logger.debug(json.dumps(json.loads(request.data.decode()), indent=4))
+        except json.JSONDecodeError:
+            logger.debug('non a json object')
+
 
 if __name__ == '__main__':
     app.run(ServerConfig.host, ServerConfig.port, True, use_reloader=False)
