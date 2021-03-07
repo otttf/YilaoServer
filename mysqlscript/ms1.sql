@@ -79,7 +79,7 @@ create table `order`
     receive_at       timestamp,
     executor         bigint unsigned,
     close_at         timestamp,
-    close_state      enum ('finish', 'cancel'),
+    close_state      enum ('finish', 'canceling', 'cancel'),
     type             varchar(32),
     category         varchar(32),
     detail           text,

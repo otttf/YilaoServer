@@ -6,20 +6,6 @@
 
 ```
 ==================== REQUEST =====================
-POST http://127.0.0.1:15000/v1.0/users/0/resources?appid=df3b72a07a0a4fa1854a48b543690eab
-
-图片数据
-==================== RESPONSE ====================
-201 CREATED
-
-{
-    "uuid": "daaa1715-e873-4a08-b9c6-a68748917ccf"
-}
-====================== END =======================
-```
-
-```
-==================== REQUEST =====================
 GET http://127.0.0.1:15000/v1.0/users/13927553153
 ==================== RESPONSE ====================
 404 NOT FOUND
@@ -198,7 +184,7 @@ POST http://127.0.0.1:5000/v1.0/users/13927553153/tokens?passwd=12345679&appid=d
 
 ```
 ==================== REQUEST =====================
-GET http://127.0.0.1:5000/v1.0/users/13927553153?token=c443bee7e5464f70b564b0cf570c75a5&appid=df3b72a07a0a4fa1854a48b543690eab
+GET http://127.0.0.1:5000/v1.0/users/13927553153
 ==================== RESPONSE ====================
 200 OK
 
@@ -227,29 +213,25 @@ POST http://127.0.0.1:5000/v1.0/users/13927553153/tokens?passwd=12345679&appid=d
 201 CREATED
 
 {
-    "token": "c443bee7e5464f70b564b0cf570c75a5"
+    "token": "1f8d8661dafa4e57ae0964304799aac6"
 }
 ====================== END =======================
 ```
 
 ```
 ==================== REQUEST =====================
-POST http://127.0.0.1:5000/v1.0/users/13927553153/orders?token=c443bee7e5464f70b564b0cf570c75a5&appid=df3b72a07a0a4fa1854a48b543690eab
+POST http://127.0.0.1:5000/v1.0/users/13927553153/orders?token=1f8d8661dafa4e57ae0964304799aac6&appid=df3b72a07a0a4fa1854a48b543690eab
 
 {
-    "tasks": [
-        {
-            "name": "abc",
-            "type": "aaa",
-            "count": 1,
-            "reward": 1,
-            "destination": {
-                "longitude": 12,
-                "latitude": 30,
-                "name": "wwww"
-            }
-        }
-    ]
+    "phone": 15466666,
+    "destination": {
+        "longitude": 1,
+        "latitude": 2,
+        "name": "aaa"
+    },
+    "type": "abc",
+    "count": 1,
+    "reward": 2
 }
 ==================== RESPONSE ====================
 201 CREATED
@@ -269,50 +251,40 @@ POST http://127.0.0.1:5000/v1.0/users/13927553153/tokens?passwd=12345679&appid=d
 201 CREATED
 
 {
-    "token": "c443bee7e5464f70b564b0cf570c75a5"
+    "token": "1f8d8661dafa4e57ae0964304799aac6"
 }
 ====================== END =======================
 ```
 
 ```
 ==================== REQUEST =====================
-GET http://127.0.0.1:5000/v1.0/users/13927553153/orders?token=c443bee7e5464f70b564b0cf570c75a5&appid=df3b72a07a0a4fa1854a48b543690eab
+GET http://127.0.0.1:5000/v1.0/users/13927553153/orders?type=abc&token=1f8d8661dafa4e57ae0964304799aac6&appid=df3b72a07a0a4fa1854a48b543690eab
 ==================== RESPONSE ====================
 200 OK
 
 [
     {
-        "emergency_level": "normal",
-        "close_at": null,
-        "destination": {
-            "longitude": 90.0,
-            "latitude": 0.0,
-            "name": null
-        },
-        "create_at": "2021-02-14T06:06:25",
-        "id": 1,
         "executor": null,
-        "tasks": [
-            {
-                "in_at": null,
-                "destination": {
-                    "longitude": 30.0,
-                    "latitude": 12.0,
-                    "name": "wwww"
-                },
-                "detail": null,
-                "name": "abc",
-                "count": 1,
-                "id": 1,
-                "out_at": null,
-                "reward": 1.0,
-                "protected_info": null,
-                "type": "aaa"
-            }
-        ],
-        "receive_at": null,
+        "in_at": null,
+        "close_at": null,
+        "create_at": "2021-03-07T13:13:46",
+        "destination": {
+            "latitude": 1.0,
+            "name": "aaa",
+            "longitude": 2.0
+        },
+        "phone": 15466666,
+        "close_state": null,
+        "protected_info": null,
+        "out_at": null,
         "from_user": 13927553153,
-        "close_state": null
+        "count": 1,
+        "emergency_level": "normal",
+        "reward": 2.0,
+        "detail": null,
+        "receive_at": null,
+        "type": "abc",
+        "id": 1
     }
 ]
 ====================== END =======================
@@ -322,43 +294,34 @@ GET http://127.0.0.1:5000/v1.0/users/13927553153/orders?token=c443bee7e5464f70b5
 
 ```
 ==================== REQUEST =====================
-GET http://127.0.0.1:5000/v1.0/public_orders
+GET http://127.0.0.1:5000/v1.0/public_orders?begin=-100&end=100
 ==================== RESPONSE ====================
 200 OK
 
 [
     {
-        "emergency_level": "normal",
-        "close_at": null,
-        "destination": {
-            "longitude": 90.0,
-            "latitude": 0.0,
-            "name": null
-        },
-        "create_at": "2021-02-14T06:06:25",
-        "id": 1,
         "executor": null,
-        "tasks": [
-            {
-                "in_at": null,
-                "destination": {
-                    "longitude": 30.0,
-                    "latitude": 12.0,
-                    "name": "wwww"
-                },
-                "detail": null,
-                "name": "abc",
-                "count": 1,
-                "id": 1,
-                "out_at": null,
-                "reward": 1.0,
-                "protected_info": null,
-                "type": "aaa"
-            }
-        ],
-        "receive_at": null,
+        "in_at": null,
+        "close_at": null,
+        "create_at": "2021-03-07T13:13:45",
+        "destination": {
+            "latitude": 1.0,
+            "name": "aaa",
+            "longitude": 2.0
+        },
+        "phone": 15466666,
+        "close_state": null,
+        "protected_info": null,
+        "id_photo": "162fa699-f0bb-4bfa-9ee3-19293318b91e",
+        "out_at": null,
         "from_user": 13927553153,
-        "close_state": null
+        "count": 1,
+        "emergency_level": "normal",
+        "reward": 2.0,
+        "detail": null,
+        "receive_at": null,
+        "type": "abc",
+        "id": 1
     }
 ]
 ====================== END =======================
@@ -388,7 +351,7 @@ PATCH http://127.0.0.1:15000/v1.0/users/16698066603/orders/1?token=9777b8a8a9c94
 ====================== END =======================
 ```
 
-## 取消订单/完成订单
+## 取消一个已有接单用户的订单
 
 ```
 ==================== REQUEST =====================
@@ -397,14 +360,30 @@ POST http://127.0.0.1:15000/v1.0/users/13927553153/tokens?passwd=12345679&appid=
 201 CREATED
 
 {
-    "token": "bcb3f8b4ce884ef59fbe3a58e8dc6d2b"
+    "token": "14076269d00b40b290afa2ff5d35b346"
 }
 ====================== END =======================
 ```
 
 ```
 ==================== REQUEST =====================
-PATCH http://127.0.0.1:15000/v1.0/users/13927553153/orders/1?token=bcb3f8b4ce884ef59fbe3a58e8dc6d2b&appid=df3b72a07a0a4fa1854a48b543690eab&close=cancel
+PATCH http://127.0.0.1:5000/v1.0/users/16698066603/orders/1?token=14076269d00b40b290afa2ff5d35b346&appid=df3b72a07a0a4fa1854a48b543690eab&receive=True
+==================== RESPONSE ====================
+204 NO CONTENT
+====================== END =======================
+```
+
+```
+==================== REQUEST =====================
+PATCH http://127.0.0.1:5000/v1.0/users/13927553153/orders/1?token=1f8d8661dafa4e57ae0964304799aac6&appid=df3b72a07a0a4fa1854a48b543690eab&close=cancel
+==================== RESPONSE ====================
+204 NO CONTENT
+====================== END =======================
+```
+
+```
+==================== REQUEST =====================
+PATCH http://127.0.0.1:5000/v1.0/users/16698066603/orders/1?token=14076269d00b40b290afa2ff5d35b346&appid=df3b72a07a0a4fa1854a48b543690eab&close=close
 ==================== RESPONSE ====================
 204 NO CONTENT
 ====================== END =======================

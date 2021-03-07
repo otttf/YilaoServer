@@ -88,10 +88,6 @@ POST http://api.yilao.tk:5000/v1.0/sms
 
 ## 注册
 
-##### 1. 上传认证图片
-
-**$mobile=0**
-
 ##### 1. 发送验证码
 
 **$method**=`PUT`
@@ -215,49 +211,39 @@ PATCH http://api.yilao.tk:5000/v1.0/users/$mobile?appid=df3b72a07a0a4fa1854a48b5
 ## 获取
 
 ```
-GET http://api.yilao.tk:5000/v1.0/users/$mobile?appid=df3b72a07a0a4fa1854a48b543690eab&token=$token
+GET http://api.yilao.tk:5000/v1.0/users/$mobile
 ```
 
 ##### 返回
 
 `200`：成功，结果包含用户的所有信息。
 
-`401`：用户验证失败
-
 `404`：用户不存在
-
-可以通过不传输密码来获取用户信息，如果返回401则是用户存在，返回404用户不存在。
 
 # 订单
 
-|      属性       |   类型   |      限制      |              解释              |
-| :-------------: | :------: | :------------: | :----------------------------: |
-|       id        |   整数   |                |       订单id（无需上传）       |
-|    from_user    |   整数   |  手机号码格式  | 哪个用户创建的订单（无需上传） |
-|      phone      |   整数   |  手机号码格式  |             联系人             |
-|   destination   |  Point   |                |    完成所有任务后去哪里交付    |
-| emergency_level |  字符串  | normal或urgent |            紧急程度            |
-|    create_at    |  字符串  |                |    创建订单时间（无需上传）    |
-|   receive_at    |  字符串  |                |    接受订单时间（无需上传）    |
-|    executor     |   整数   |  手机号码格式  |             执行者             |
-|    close_at     |  字符串  |                |    关闭订单时间（无需上传）    |
-|   close_state   |  字符串  | finish或cancel |           关闭的状态           |
-|      tasks      | Task列表 |                |            任务列表            |
-
-## Task类型
-
-|      属性      |  类型  |                             解释                             |
-| :------------: | :----: | :----------------------------------------------------------: |
-|       id       |  整数  |                      表单id（无需上传）                      |
-|      name      | 字符串 |                            任务名                            |
-|      type      | 字符串 |                           任务类型                           |
-|     detail     | 字符串 |                           任务描述                           |
-| protected_info | 字符串 |                 接单后才能告诉别人的私密信息                 |
-|  destination   | Point  |                        任务的目的地址                        |
-|     count      |  整数  |                           执行次数                           |
-|     reward     | 浮点数 |                             奖赏                             |
-|     out_at     | 字符串 | 用户借出资源的时间（做某项任务时可能需要用户给的某些资源，因此有一个借出时间） |
-|     in_at      | 字符串 | 用户收回资源的时间（同理，资源使用完成后用户可能会有一个收回的时候） |
+|      属性       |  类型  |      限制      |                             解释                             |
+| :-------------: | :----: | :------------: | :----------------------------------------------------------: |
+|       id        |  整数  |                |                      订单id（无需上传）                      |
+|    from_user    |  整数  |  手机号码格式  |                哪个用户创建的订单（无需上传）                |
+|      phone      |  整数  |  手机号码格式  |                            联系人                            |
+|   destination   | Point  |                |                   完成所有任务后去哪里交付                   |
+| emergency_level | 字符串 | normal或urgent |                           紧急程度                           |
+|    create_at    | 字符串 |                |                   创建订单时间（无需上传）                   |
+|   receive_at    | 字符串 |                |                   接受订单时间（无需上传）                   |
+|    executor     |  整数  |  手机号码格式  |                            执行者                            |
+|    close_at     | 字符串 |                |                   关闭订单时间（无需上传）                   |
+|   close_state   | 字符串 | finish或cancel |                          关闭的状态                          |
+|      type       | 字符串 |                |                           任务类型                           |
+|    category     | 字符串 |                |                           二级类别                           |
+|     detail      | 字符串 |                |                           任务描述                           |
+| protected_info  | 字符串 |                |                 接单后才能告诉别人的私密信息                 |
+|     photos      | 字符串 |                |                         多张照片的id                         |
+|      count      |  整数  |                |                           执行次数                           |
+|     reward      | 浮点数 |                |                             奖赏                             |
+|      in_at      | 字符串 |                | 用户收回资源的时间（同理，资源使用完成后用户可能会有一个收回的时候） |
+|     out_at      | 字符串 |                | 用户借出资源的时间（做某项任务时可能需要用户给的某些资源，因此有一个借出时间） |
+|    id_photo     | 字符串 |                |                   下单者的头像（无需上传）                   |
 
 ## 新建
 
@@ -311,7 +297,23 @@ PATCH http://127.0.0.1:15000/v1.0/users/$mobile/orders/$order_id?token=$token&ap
 
 `$token`：登陆时获取到的令牌
 
-`$close`：取值`finish`或者`cancel`，是完成还是取消订单。
+`$close`：取值`finish`或者`cancel`，是完成还是取消订单。如果是取消订单，且已接单那么会进入canceling状态，等待对方同意。
+
+## 接受/拒绝取消订单
+
+```
+PATCH http://127.0.0.1:15000/v1.0/users/$mobile/orders/$order_id?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab&close=close
+```
+
+`$mobile`：接单者的手机号码
+
+`$order_id`：需要接单的订单id
+
+`$token`：登陆时获取到的令牌
+
+`$receive`：取值`true`或者`false`，是接单还是取消接单，取消接单只有接单不超过三分钟才能进行。
+
+`$close`：取值`close`或`reopen`，是接受还是拒绝。
 
 ## 获取
 
@@ -423,17 +425,11 @@ GET http://127.0.0.1:5000/v1.0/users/$mobile/dialogs_with/$another_user?token=$t
 
 ## 新建
 
-```
-POST http://127.0.0.1:5000/v1.0/users/$mobile/resources?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab
-
-$body
-```
+url为`POST http://127.0.0.1:5000/v1.0/users/$mobile/resources?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab`，具体上传文件请参考使用表单上传文件，格式`multipart/form-data`
 
 `$mobile`：手机号或0，mobile=0时无需进行认证
 
 `$token`：令牌
-
-`$body`：需要上传的文件的内容
 
 ##### 返回
 
@@ -448,14 +444,10 @@ $body
 ## 下载
 
 ```
-GET http://127.0.0.1:5000/v1.0/users/$mobile/resources/$uuid?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab
+GET http://127.0.0.1:5000/v1.0/users/$mobile/resources/$uuid
 ```
 
 `$mobile`：手机号
-
-`$uuid`：需要下载的文件的uuid
-
-`$token`：令牌
 
 ##### 返回
 

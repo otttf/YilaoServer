@@ -13,7 +13,8 @@ class PublicOrderListResource(Resource):
         """获取所有可以接取的任务"""
         _use(self)
         with mycursor(dictionary=True) as c:
-            c.execute("select * from `order` where executor is null and close_state is null")
+            c.execute(
+                "select *, u.id_photo from `order` left join user u on u.mobile = `order`.from_user where executor is null and close_state is null")
             order_list = c.fetchall()
             for order in order_list:
                 dump_locations(order, order_schema)
@@ -21,11 +22,6 @@ class PublicOrderListResource(Resource):
 
 
 class OrderListResource(Resource):
-    @staticmethod
-    def distance_filter(name, value):
-        with mycursor() as c:
-            return c.execute('select st_distance_sphere((select destination from `order` where id=%s), destination) from `order`')
-
     @staticmethod
     def filter_(orders: List[dict]):
         now = datetime.utcnow()
@@ -45,7 +41,7 @@ class OrderListResource(Resource):
                 continue
             if end is not None and create_at > end:
                 continue
-            if type_ is not None and order['tasks'][0]['type'] != type_:
+            if type_ is not None and order['type'] != type_:
                 continue
             res.append(order)
         return res
@@ -86,10 +82,11 @@ class OrderResource(Resource):
             c.execute('select * from `order` where id=%s limit 1', (order_id,))
             order = c.fetchone()
             from_user = order['from_user']
+            receive = request.args.get('receive')
+            receive = receive.lower() if isinstance(receive, str) else receive
+            close = request.args.get('close')
             if mobile != from_user:
-                # 不是发布者，只能更新是否接受任务状态
-                receive = request.args.get('receive')
-                receive = receive.lower() if isinstance(receive, str) else receive
+                # 不是发布者，只能更新是否接受任务状态或者接受对方取消订单
                 if receive == 'true':
                     # 如果要接单
                     if order['executor'] is None:
@@ -107,6 +104,14 @@ class OrderResource(Resource):
                             return exc('超过三分钟，无法取消接单'), 400
                     else:
                         return exc('订单已被其他人接受'), 400
+                elif order['close_state'] == 'canceling':
+                    if close == 'close':
+                        c.execute("update `order` set close_at=current_timestamp, close_state='cancel' where id=%s",
+                                  (order_id,))
+                    elif close == 'reopen':
+                        c.execute("update `order` set close_at=null, close_state=null where id=%s", (order_id,))
+                    else:
+                        return exc('错误的值'), 400
                 else:
                     return exc('错误的值'), 400
             else:
@@ -117,10 +122,8 @@ class OrderResource(Resource):
                 if close == 'cancel':
                     # 希望取消订单
                     if order['executor'] is not None:
-                        # 已有人接单
-                        if datetime.utcnow() - order['receive_at'] >= timedelta(minutes=3):
-                            # 时间超过三分钟
-                            return exc('已经有人接单超过三分钟，无法取消订单'), 400
+                        # 已有人接单，改为取消中
+                        close = 'canceling'
                 c.execute('update `order` set close_at=current_timestamp, close_state=%s where id=%s',
                           (close, order_id))
             return Response(status=204)

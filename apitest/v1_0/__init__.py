@@ -159,8 +159,8 @@ class UserTest:
     def get(cls, mobile, token=None, appid: Optional[str] = default_appid):
         url = cls.url(mobile)
         params = {}
-        set_field(params, token)
-        set_field(params, appid)
+        # set_field(params, token)
+        # set_field(params, appid)
         resp = requests.get(url, params)
         check(resp)
         return resp.json()
@@ -505,13 +505,13 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
 
         # get user info
         header('Get Info', 1)
-        UserTest.get(mobile, token)
+        UserTest.get(mobile)
 
         header('OrderTest')
         header('Post order', 1)
         order_id = OrderListTest.post(mobile, token, 15466666, 'abc', 1, 2, point(1, 2, 'aaa'))
         header('Get relative order', 1)
-        OrderListTest.get(mobile, token)
+        OrderListTest.get(mobile, token, type_='abc')
         header('Get public order', 1)
 
         PublicOrderListTest.get(begin=-100, end=100)
@@ -527,8 +527,12 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
         OrderTest.patch(another_one_mobile, another_token, order_id, receive=True)
         header('Cancel receive order', 1)
         OrderTest.patch(another_one_mobile, another_token, order_id, receive=False)
-        header('Close order', 1)
+        header('Receive order', 1)
+        OrderTest.patch(another_one_mobile, another_token, order_id, receive=True)
+        header('Closing order', 1)
         OrderTest.patch(mobile, token, order_id, close='cancel')
+        header('Accept close order', 1)
+        OrderTest.patch(another_one_mobile, another_token, order_id, close='close')
 
         header('DialogTest')
         header('Send', 1)

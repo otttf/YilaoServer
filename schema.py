@@ -78,6 +78,7 @@ class OrderSchema(Schema):
     reward = fields.Float()
     in_at = fields.DateTime(allow_none=True)
     out_at = fields.DateTime(allow_none=True)
+    id_photo = fields.Str(dump_only=True)
 
 
 user_schema = UserSchema()
