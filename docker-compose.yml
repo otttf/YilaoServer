@@ -4,6 +4,8 @@ services:
     build: .
     ports:
       - 5000:8001
+    volumes:
+      - ./data:/app/data
     depends_on:
       - mysql
       - redis

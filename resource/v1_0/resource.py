@@ -6,6 +6,7 @@ from schema import resource_schema
 from ..util import mycursor
 from uuid import uuid4
 from .validation import test, token_validate
+from werkzeug.utils import secure_filename
 
 
 def get_path(mobile, visibility='public'):
@@ -17,15 +18,17 @@ class ResourceListResource(Resource):
         if mobile != 0 and not test(token_validate, mobile=mobile):
             return Response(status=401)
         uuid = str(uuid4())
+        f = request.files['file']
+        name = secure_filename(f.filename)
         path = get_path(mobile)
         if not os.path.exists(path):
             os.makedirs(path)
-        with open(f'{path}/{uuid}', 'wb') as f:
-            f.write(request.stream.read(ResourceConfig.Resource.chuck_size))
+        f.save(os.path.join(path, uuid))
         if mobile != 0:
             with mycursor() as c:
-                c.execute('insert into resource(uuid, from_user, create_at) values (%s, %s, current_timestamp)',
-                          (uuid, mobile))
+                c.execute(
+                    'insert into resource(uuid, name, from_user, create_at) values (%s, %s, %s, current_timestamp)',
+                    (uuid, name, mobile))
         return resource_schema.dump({'uuid': uuid}), 201
 
 

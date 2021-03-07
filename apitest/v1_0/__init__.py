@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from functools import lru_cache, partial
 import inspect
 import json
@@ -214,9 +215,13 @@ class PublicOrderListTest:
 
     @classmethod
     @link(PublicOrderListResource.get)
-    def get(cls):
+    def get(cls, begin=None, end=None, type_=None):
         url = cls.url()
-        resp = requests.get(url)
+        params = {}
+        set_field(params, begin)
+        set_field(params, end)
+        set_field(params, type_)
+        resp = requests.get(url, params=params)
         check(resp)
         return resp.json()
 
@@ -243,9 +248,12 @@ class OrderListTest:
 
     @classmethod
     @link(OrderListResource.get)
-    def get(cls, mobile, token, appid=default_appid):
+    def get(cls, mobile, token, begin=None, end=None, type_=None, appid=default_appid):
         url = cls.url(mobile)
         params = {}
+        set_field(params, begin)
+        set_field(params, end)
+        set_field(params, type_, 'type')
         set_field(params, token)
         set_field(params, appid)
         resp = requests.get(url, params=params)
@@ -338,8 +346,10 @@ class ResourceListTest:
         params = {}
         set_field(params, token)
         set_field(params, appid)
-        with open(filename, 'rb') as f:
-            resp = requests.post(url, params=params, data=f.read())
+        files = {
+            'file': (filename, open(filename, 'rb'))
+        }
+        resp = requests.post(url, params=params, files=files)
         check(resp)
         return resp.json()['uuid']
 
@@ -512,7 +522,9 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
         header('Get relative order', 1)
         OrderListTest.get(mobile, token)
         header('Get public order', 1)
-        PublicOrderListTest.get()
+
+        PublicOrderListTest.get(begin=datetime.utcnow() - timedelta(minutes=10),
+                                end=datetime.utcnow() + timedelta(minutes=10))
         header('Relative order of another one')
         another_one_mobile = 16698066603
         try:

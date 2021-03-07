@@ -31,7 +31,7 @@ class UserSchema(Schema):
     create_at = fields.DateTime(dump_only=True)
     id_name = fields.Str(validate=varchar32)
     id_school = fields.Str(validate=varchar32)
-    id_photo = fields.Str(validate=lambda it: len(it) == 36)
+    id_photo = fields.Str(validate=lambda it: len(it) <= 36)
 
 
 class ResourceSchema(Schema):

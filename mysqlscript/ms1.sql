@@ -42,9 +42,6 @@ create table resource
     foreign key (from_user) references user (mobile)
 );
 
-alter table user
-    add foreign key (portrait) references resource (uuid);
-
 create table dialog
 (
     id        int unsigned primary key auto_increment,
@@ -67,8 +64,7 @@ create table commodity
     on_offer      bool         default false,
     price         decimal(16, 2) unsigned,
     sales_volume  int unsigned default 0,
-    photo         char(36),
-    foreign key (photo) references resource (uuid)
+    photos        mediumtext
 );
 
 create table `order`
@@ -97,15 +93,14 @@ create table task
     category         varchar(32),
     detail           text,
     protected_info   text,
-    photo            char(36),
+    photos           mediumtext,
     `order`          int unsigned,
-    destination      point srid 4326 not null  comment '任务地点，null = point(0, 90)',
+    destination      point srid 4326 not null comment '任务地点，null = point(0, 90)',
     destination_name varchar(64),
     count            int unsigned comment '需要物品的数量',
     reward           decimal(16, 2) unsigned,
     in_at            timestamp,
     out_at           timestamp,
-    foreign key (photo) references resource (uuid),
     foreign key (`order`) references `order` (id),
     spatial key (destination)
 );

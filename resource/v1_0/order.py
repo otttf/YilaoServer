@@ -5,6 +5,7 @@ from schema import order_schema, task_schema
 from wrap import _use
 from ..util import dump_locations, curd_params, exc, mycursor, null_point
 from .validation import token_validate
+from typing import List
 
 
 class PublicOrderListResource(Resource):
@@ -12,24 +13,11 @@ class PublicOrderListResource(Resource):
         """获取所有可以接取的任务"""
         _use(self)
         with mycursor(dictionary=True) as c:
-            # TODO 加入时间筛选
             c.execute("select * from `order` where executor is null and close_state is null")
             order_list = c.fetchall()
             for order in order_list:
                 OrderListResource.handle(order)
-            return order_schema.dump(order_list, many=True)
-
-        # from_time = request.args.get('from_time')
-        # to_time = request.args.get('to_time')
-        # region_left = request.args.get('region_left')
-        # region_right = request.args.get('region_right')
-        # region_top = request.args.get('region_top')
-        # region_bottom = request.args.get('region_bottom')
-        # region = MySQLUtil.rect(region_left, region_top, region_right, region_bottom)
-        # with mycursor() as c:
-        #     c.execute("select st_polyfromtext('POLYGON((%s %s, %s %s, %s %s, %s %s, ))')")
-        #     c.execute("select * from `order` join task t on `order`.id = t.`order` "
-        #               "where mbrcontains(%s, point(%s, %s))")
+            return OrderListResource.filter_(order_schema.dump(order_list, many=True))
 
 
 class OrderListResource(Resource):
@@ -42,6 +30,24 @@ class OrderListResource(Resource):
             for task in order['tasks']:
                 dump_locations(task, task_schema)
 
+    @staticmethod
+    def filter_(orders: List[dict]):
+        return orders
+        begin = request.args.get('begin')
+        end = request.args.get('end')
+        type_ = request.args.get('type')
+        res = []
+        for order in orders:
+            create_at = datetime(order['create_at'])
+            if begin is not None and create_at < begin:
+                continue
+            if end is not None and create_at > end:
+                continue
+            if type_ is not None and order['tasks'][0]['type'] != type_:
+                continue
+            res.append(order)
+        return res
+
     @token_validate
     def get(self, mobile):
         """获取和自己相关的订单，自己是发布者或者自己是执行者"""
@@ -50,8 +56,8 @@ class OrderListResource(Resource):
             c.execute('select * from `order` where from_user=%s or executor=%s', (mobile, mobile))
             order_list = c.fetchall()
             for order in order_list:
-                OrderListResource.handle(order)
-            return order_schema.dump(order_list, many=True)
+                self.handle(order)
+            return self.filter_(order_schema.dump(order_list, many=True))
 
     @token_validate
     def post(self, mobile):
