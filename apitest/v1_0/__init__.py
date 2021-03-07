@@ -226,21 +226,6 @@ class PublicOrderListTest:
         return resp.json()
 
 
-def task(name, type_, count, reward, destination=None, category=None, detail=None, protected_info=None,
-         photo=None):
-    json_ = {}
-    set_field(json_, name)
-    set_field(json_, type_, 'type')
-    set_field(json_, count)
-    set_field(json_, reward)
-    set_field(json_, destination)
-    set_field(json_, category)
-    set_field(json_, detail)
-    set_field(json_, protected_info)
-    set_field(json_, photo)
-    return json_
-
-
 class OrderListTest:
     @staticmethod
     def url(mobile):
@@ -248,12 +233,13 @@ class OrderListTest:
 
     @classmethod
     @link(OrderListResource.get)
-    def get(cls, mobile, token, begin=None, end=None, type_=None, appid=default_appid):
+    def get(cls, mobile, token, begin=None, end=None, type_=None, distance=None, appid=default_appid):
         url = cls.url(mobile)
         params = {}
         set_field(params, begin)
         set_field(params, end)
         set_field(params, type_, 'type')
+        set_field(params, distance)
         set_field(params, token)
         set_field(params, appid)
         resp = requests.get(url, params=params)
@@ -262,7 +248,8 @@ class OrderListTest:
 
     @classmethod
     @link(OrderListResource.post)
-    def post(cls, mobile, token, appid=default_appid, phone=None, destination=None, emergency_level=None, tasks=None):
+    def post(cls, mobile, token, phone, type_, count, reward, destination=None, emergency_level=None, category=None,
+             detail=None, protected_info=None, photos=None, appid=default_appid):
         url = cls.url(mobile)
         params = {}
         set_field(params, token)
@@ -271,7 +258,13 @@ class OrderListTest:
         set_field(json_, phone)
         set_field(json_, destination)
         set_field(json_, emergency_level)
-        set_field(json_, tasks)
+        set_field(json_, type_, 'type')
+        set_field(json_, count)
+        set_field(json_, reward)
+        set_field(json_, category)
+        set_field(json_, detail)
+        set_field(json_, protected_info)
+        set_field(json_, photos)
         resp = requests.post(url, params=params, json=json_)
         check(resp)
         return resp.json()['id']
@@ -516,15 +509,12 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
 
         header('OrderTest')
         header('Post order', 1)
-        order_id = OrderListTest.post(mobile, token, default_appid, 15466666, tasks=[
-            task('abc', 'aaa', 1, 1, point(12, 30, 'wwww'))
-        ])
+        order_id = OrderListTest.post(mobile, token, 15466666, 'abc', 1, 2, point(1, 2, 'aaa'))
         header('Get relative order', 1)
         OrderListTest.get(mobile, token)
         header('Get public order', 1)
 
-        PublicOrderListTest.get(begin=datetime.utcnow() - timedelta(minutes=10),
-                                end=datetime.utcnow() + timedelta(minutes=10))
+        PublicOrderListTest.get(begin=-100, end=100)
         header('Relative order of another one')
         another_one_mobile = 16698066603
         try:

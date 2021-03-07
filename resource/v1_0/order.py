@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from flask import request, Response
 from flask_restful import Resource
-from schema import order_schema, task_schema
+from schema import order_schema
 from wrap import _use
 from ..util import dump_locations, curd_params, exc, mycursor, null_point
 from .validation import token_validate
@@ -16,29 +16,31 @@ class PublicOrderListResource(Resource):
             c.execute("select * from `order` where executor is null and close_state is null")
             order_list = c.fetchall()
             for order in order_list:
-                OrderListResource.handle(order)
-            return OrderListResource.filter_(order_schema.dump(order_list, many=True))
+                dump_locations(order, order_schema)
+            return order_schema.dump(OrderListResource.filter_(order_list), many=True)
 
 
 class OrderListResource(Resource):
     @staticmethod
-    def handle(order: dict):
-        dump_locations(order, order_schema)
-        with mycursor(autocommit=False, dictionary=True) as c:
-            c.execute('select * from task where `order`=%s', (order['id'],))
-            order['tasks'] = c.fetchall()
-            for task in order['tasks']:
-                dump_locations(task, task_schema)
+    def distance_filter(name, value):
+        with mycursor() as c:
+            return c.execute('select st_distance_sphere((select destination from `order` where id=%s), destination) from `order`')
 
     @staticmethod
     def filter_(orders: List[dict]):
-        return orders
-        begin = request.args.get('begin')
-        end = request.args.get('end')
+        now = datetime.utcnow()
+        try:
+            begin = now + timedelta(seconds=int(request.args.get('begin')))
+        except TypeError:
+            begin = None
+        try:
+            end = now + timedelta(seconds=int(request.args.get('end')))
+        except TypeError:
+            end = None
         type_ = request.args.get('type')
         res = []
         for order in orders:
-            create_at = datetime(order['create_at'])
+            create_at = order['create_at']
             if begin is not None and create_at < begin:
                 continue
             if end is not None and create_at > end:
@@ -56,8 +58,8 @@ class OrderListResource(Resource):
             c.execute('select * from `order` where from_user=%s or executor=%s', (mobile, mobile))
             order_list = c.fetchall()
             for order in order_list:
-                self.handle(order)
-            return self.filter_(order_schema.dump(order_list, many=True))
+                dump_locations(order, order_schema)
+            return order_schema.dump(self.filter_(order_list), many=True)
 
     @token_validate
     def post(self, mobile):
@@ -67,19 +69,10 @@ class OrderListResource(Resource):
         if 'destination' not in order:
             order['destination'] = null_point
 
-        tasks = order.pop('tasks')
-        for task in tasks:
-            if 'destination' not in task:
-                task['destination'] = null_point
-
         with mycursor() as c:
             to_insert = curd_params(order, order_schema)
             c.execute(f'insert into `order` set {to_insert[0]}', to_insert[1])
             order_id = c.lastrowid
-            for task in tasks:
-                task['order'] = order_id
-                to_insert = curd_params(task, task_schema)
-                c.execute(f"insert into `task` set {to_insert[0]}", to_insert[1])
 
         return order_schema.dump({'id': order_id}), 201
 

@@ -80,27 +80,17 @@ create table `order`
     executor         bigint unsigned,
     close_at         timestamp,
     close_state      enum ('finish', 'cancel'),
-    foreign key (from_user) references user (mobile),
-    foreign key (executor) references user (mobile),
-    spatial key (destination)
-);
-
-create table task
-(
-    id               int unsigned primary key auto_increment,
-    name             varchar(32),
     type             varchar(32),
     category         varchar(32),
     detail           text,
     protected_info   text,
     photos           mediumtext,
-    `order`          int unsigned,
-    destination      point srid 4326 not null comment '任务地点，null = point(0, 90)',
-    destination_name varchar(64),
     count            int unsigned comment '需要物品的数量',
     reward           decimal(16, 2) unsigned,
     in_at            timestamp,
     out_at           timestamp,
-    foreign key (`order`) references `order` (id),
+    foreign key (from_user) references user (mobile),
+    foreign key (executor) references user (mobile),
     spatial key (destination)
 );
+

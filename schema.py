@@ -2,7 +2,7 @@ from functools import partial
 from marshmallow import Schema, fields
 
 __all__ = ['PointSchema', 'UserSchema', 'ResourceSchema', 'DialogSchema', 'CommoditySchema', 'OrderSchema',
-           'user_schema', 'resource_schema', 'dialog_schema', 'commodity_schema', 'order_schema', 'task_schema']
+           'user_schema', 'resource_schema', 'dialog_schema', 'commodity_schema', 'order_schema']
 
 
 def varchar(s, n):
@@ -71,16 +71,9 @@ class OrderSchema(Schema):
     executor = fields.Int(dump_only=True)
     close_at = fields.DateTime(dump_only=True)
     close_state = fields.Str(validate=lambda it: it in ['finish', 'cancel'])
-    tasks = fields.List(fields.Nested(lambda: task_schema), )
-
-
-class TaskSchema(Schema):
-    id = fields.Int(dump_only=True)
-    name = fields.Str(validate=varchar32)
     type = fields.Str(validate=varchar32)
     detail = fields.Str(allow_none=True, validate=text)
     protected_info = fields.Str(allow_none=True, validate=text)
-    destination = fields.Nested(PointSchema, allow_none=True)
     count = fields.Int()
     reward = fields.Float()
     in_at = fields.DateTime(allow_none=True)
@@ -92,4 +85,3 @@ resource_schema = ResourceSchema()
 dialog_schema = DialogSchema()
 commodity_schema = CommoditySchema()
 order_schema = OrderSchema()
-task_schema = TaskSchema()
