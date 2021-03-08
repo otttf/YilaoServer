@@ -17,19 +17,22 @@ class ResourceListResource(Resource):
     def post(self, mobile):
         if mobile != 0 and not test(token_validate, mobile=mobile):
             return Response(status=401)
-        uuid = str(uuid4())
-        f = request.files['file']
-        name = secure_filename(f.filename)
-        path = get_path(mobile)
-        if not os.path.exists(path):
-            os.makedirs(path)
-        f.save(os.path.join(path, uuid))
-        if mobile != 0:
-            with mycursor() as c:
-                c.execute(
-                    'insert into resource(uuid, name, from_user, create_at) values (%s, %s, %s, current_timestamp)',
-                    (uuid, name, mobile))
-        return resource_schema.dump({'uuid': uuid}), 201
+        fs = request.files.getlist('file')
+        uuids = []
+        for f in fs:
+            uuid = str(uuid4())
+            name = secure_filename(f.filename)
+            path = get_path(mobile)
+            if not os.path.exists(path):
+                os.makedirs(path)
+            f.save(os.path.join(path, uuid))
+            if mobile != 0:
+                with mycursor() as c:
+                    c.execute(
+                        'insert into resource(uuid, name, from_user, create_at) values (%s, %s, %s, current_timestamp)',
+                        (uuid, name, mobile))
+            uuids.append(uuid)
+        return resource_schema.dump({'uuid': ','.join(uuids)}), 201
 
 
 def get_public_resource(mobile, uuid):

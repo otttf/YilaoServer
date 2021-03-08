@@ -57,15 +57,15 @@ POST http://api.yilao.tk:5000/v1.0/sms
 	"appid": "df3b72a07a0a4fa1854a48b543690eab",
 	"mobile": $mobile,
 	"method": $method,
-	"base_url": $base_url
+	"path": $path
 }
 ```
 
 `$mobile`**：用户手机号码**
 
-`$method $base_url`**：需要访问的链接**
+`$method $path`**：需要访问的链接**
 
-注意，base_url并不包含参数部分。
+注意，path并不包含参数部分。
 
 ##### 返回
 

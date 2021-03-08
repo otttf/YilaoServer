@@ -11,12 +11,12 @@ from flask import request
 
 class SMSResource(Resource):
     @staticmethod
-    def sms_name(appid, mobile, method, base_url):
+    def sms_name(appid, mobile, method, path):
         appid = str(appid).lower()
         mobile = str(mobile)
         method = str(method).upper()
-        base_url = str(base_url).lower()
-        return yl(f'sms?{appid=}&{mobile=}&{method=}&{base_url=}')
+        path = str(path).lower()
+        return yl(f'sms?{appid=}&{mobile=}&{method=}&{path=}')
 
     def post(self):
         data = json.loads(request.data)
@@ -51,7 +51,7 @@ class SMSResource(Resource):
         def wrapper(*args, **kwargs):
             mobile = kwargs.get('mobile', request.args.get('mobile', ''))
             appid = request.args.get('appid', '')
-            name = cls.sms_name(appid, mobile, request.method, request.base_url)
+            name = cls.sms_name(appid, mobile, request.method, request.path)
             code = request.args.get('code')
             rcon = get_rcon()
             real_code = rcon.get(name)
