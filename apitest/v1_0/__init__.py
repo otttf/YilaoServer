@@ -73,14 +73,14 @@ def check(resp):
         try:
             logmsg += f'\n{json.dumps(json.loads(resp.request.body.decode()), indent=4)}\n'
         except Exception as e:
-            _use(e)
+            logmsg += f'\nlen={len(resp.request.body)}\n'
     logmsg += f"{' RESPONSE '.center(header_width, '=')}\n"
     logmsg += f'{resp.status_code} {resp.reason}\n'
     if resp.content:
         try:
             logmsg += f'\n{json.dumps(json.loads(resp.content.decode()), indent=4)}\n'
         except Exception as e:
-            _use(e)
+            logmsg += f'\nlen={len(resp.content)}\n'
     logmsg += f"{' END '.center(header_width, '=')}"
     logging.log(loglevel, logmsg)
     if resp.status_code // 100 != 2:
@@ -120,13 +120,13 @@ class SMSTest:
     @classmethod
     @link(SMSResource.post)
     def post(cls, mobile, method, base_url, appid=default_appid):
+        path = base_url.replace(_prefix, '')
         url = cls.url()
-        json_ = {
-            'appid': appid,
-            'mobile': mobile,
-            'method': method,
-            'base_url': base_url
-        }
+        json_ = {}
+        set_field(json_, appid)
+        set_field(json_, mobile)
+        set_field(json_, method)
+        set_field(json_, path)
         resp = requests.post(url, json=json_)
         check(resp)
 
@@ -469,6 +469,9 @@ def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_cod
     if proxies is not None:
         requests.api.request = partial(requests.api.request, proxies=proxies)
     logging.basicConfig(format='%(message)s', level=loglevel, stream=sys.stdout)
+
+    # while True:
+    #     ResourceTest.get(13060887368, None, '14ec3d68-8f52-48c7-ab81-e8013e4aa6f3')
 
     # 新建资源
     photo_uuid = ResourceListTest.post(0, None, __file__)

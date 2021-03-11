@@ -7,6 +7,9 @@ from resource import *
 import resource.util
 import sys
 from wrap import connect_mysql, connect_redis, SmartCursor, Sync
+import faulthandler
+
+faulthandler.enable()
 
 logging.basicConfig(level=LogConfig.level, format=LogConfig.format_patterns[LogConfig.pattern_n], stream=sys.stdout)
 app = Flask(__name__)

@@ -20,7 +20,7 @@ POST http://127.0.0.1:15000/v1.0/sms
     "appid": "df3b72a07a0a4fa1854a48b543690eab",
     "mobile": 13927553153,
     "method": "PUT",
-    "base_url": "http://127.0.0.1:15000/v1.0/users/13927553153"
+    "path": "/v1.0/users/13927553153"
 }
 ==================== RESPONSE ====================
 201 CREATED

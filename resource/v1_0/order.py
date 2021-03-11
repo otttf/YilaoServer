@@ -111,14 +111,18 @@ class OrderResource(Resource):
                     elif close == 'reopen':
                         c.execute("update `order` set close_at=null, close_state=null where id=%s", (order_id,))
                     else:
-                        return exc('错误的值'), 400
+                        return exc('错误的值close'), 400
                 else:
-                    return exc('错误的值'), 400
+                    return exc('错误的值close'), 400
             else:
                 # 否则是更新关闭订单的信息
                 if order['close_state'] is not None:
                     return exc('订单已关闭'), 400
                 close = request.args.get('close')
+                if receive:
+                    return exc('无效参数receive'), 400
+                if close is None:
+                    return exc('缺少参数close'), 400
                 if close == 'cancel':
                     # 希望取消订单
                     if order['executor'] is not None:

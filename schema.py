@@ -42,6 +42,8 @@ class ResourceSchema(Schema):
 
 
 class DialogSchema(Schema):
+    class Meta:
+        ordered = True
     id = fields.Int(dump_only=True)
     content = fields.Str()
     from_user = fields.Int(dump_only=True)
@@ -72,6 +74,7 @@ class OrderSchema(Schema):
     close_at = fields.DateTime(dump_only=True)
     close_state = fields.Str(validate=lambda it: it in ['finish', 'cancel'])
     type = fields.Str(validate=varchar32)
+    category = fields.Str()
     detail = fields.Str(allow_none=True, validate=text)
     protected_info = fields.Str(allow_none=True, validate=text)
     count = fields.Int()
@@ -79,6 +82,8 @@ class OrderSchema(Schema):
     in_at = fields.DateTime(allow_none=True)
     out_at = fields.DateTime(allow_none=True)
     id_photo = fields.Str(dump_only=True)
+    photos = fields.Str()
+    name = fields.Str()
 
 
 user_schema = UserSchema()

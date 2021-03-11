@@ -18,4 +18,4 @@ EXPOSE 8001
 
 # 启动
 # CMD ["gunicorn", "-c", "config/gunicorn.conf.py", "app:app", "--access-logfile", "-"]
-CMD ["python", "-u", "app.py"]
+CMD ["python", "-u", "-X", "faulthandler", "-X", "utf8", "app.py"]

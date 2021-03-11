@@ -92,7 +92,7 @@ POST http://api.yilao.tk:5000/v1.0/sms
 
 **$method**=`PUT`
 
-**$base_url**=`http://api.yilao.tk:5000/v1.0/users/$mobile`
+**$path**=`/v1.0/users/$mobile`
 
 ##### 2. 验证并注册
 
@@ -244,6 +244,7 @@ GET http://api.yilao.tk:5000/v1.0/users/$mobile
 |      in_at      | 字符串 |                | 用户收回资源的时间（同理，资源使用完成后用户可能会有一个收回的时候） |
 |     out_at      | 字符串 |                | 用户借出资源的时间（做某项任务时可能需要用户给的某些资源，因此有一个借出时间） |
 |    id_photo     | 字符串 |                |                   下单者的头像（无需上传）                   |
+|      name       | 字符串 |                |                            订单名                            |
 
 ## 新建
 
@@ -320,8 +321,16 @@ PATCH http://127.0.0.1:15000/v1.0/users/$mobile/orders/$order_id?token=$token&ap
 ### 可接取的订单
 
 ```
-GET http://127.0.0.1:5000/v1.0/public_orders
+GET http://127.0.0.1:5000/v1.0/public_orders?begin=$begin&end=$end&type=type
 ```
+
+`$begin`：整数，以现在为基准的时间偏移，单位为秒
+
+`$end`：整数，同上
+
+`$type`：订单类别
+
+时间筛选举例：如果需要选择3分钟前到2分钟前的订单，则$begin=-3\*60=-180（注意要有负号），\$end=-2\*60=-120
 
 ##### 返回
 

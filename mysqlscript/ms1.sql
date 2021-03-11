@@ -71,6 +71,7 @@ create table `order`
 (
     id               int unsigned primary key auto_increment,
     from_user        bigint unsigned,
+    name             varchar(32),
     phone            bigint unsigned,
     destination      point srid 4326 not null comment '交付地点，null = point(0, 90)',
     destination_name varchar(64),
@@ -93,4 +94,3 @@ create table `order`
     foreign key (executor) references user (mobile),
     spatial key (destination)
 );
-
