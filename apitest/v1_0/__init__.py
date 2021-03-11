@@ -462,7 +462,7 @@ def header(msg, i=0):
     logging.log(loglevel, header_str.center(header_width + 9, '*'))
 
 
-def test_template(mobile=13927553153, prefix='http://api.yilao.tk:5000', get_code=get_code_template,
+def test_template(mobile=13927553153, prefix='http://api.yilao.tk:15000', get_code=get_code_template,
                   get_passwd=get_passwd_template, proxies=None):
     global _prefix
     _prefix = prefix
