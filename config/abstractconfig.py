@@ -100,7 +100,7 @@ class ResourceConfig:
         active_duration: float = 300
 
     class Token:
-        expire = 300
+        expire = 3000000
         cache = True
 
     class SMS:

@@ -153,6 +153,7 @@ class TokenResource(Resource):
             rcon = get_rcon()
             res = rcon.get(name)
             if res is None:
+                get_logger().debug('token not in redis, select from database')
                 with mycursor(autocommit=False) as c:
                     c.execute(
                         'select hex from token where user=%s and appid=%s and current_timestamp < deadline limit 1',
@@ -162,7 +163,9 @@ class TokenResource(Resource):
                         res = res[0]
                         rcon.set(name, res, ex=ResourceConfig.Token.expire, nx=True)
                     else:
-                        return exc('不存在的token验证', True), 404
+                        get_logger().debug('token not in database')
+                        get_logger().debug('could not pass token validation')
+                        return Response(status=401)
             if res == token:
                 return func(*args, **kwargs)
             else:
