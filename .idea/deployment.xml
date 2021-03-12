@@ -15,19 +15,6 @@
           </excludedPaths>
         </serverdata>
       </paths>
-      <paths name="yilao2">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/YilaoServer" local="$PROJECT_DIR$" web="/" />
-          </mappings>
-          <excludedPaths>
-            <excludedPath local="true" path="$PROJECT_DIR$/data" />
-            <excludedPath local="true" path="$PROJECT_DIR$/run" />
-            <excludedPath local="true" path="$PROJECT_DIR$/.idea" />
-            <excludedPath local="true" path="$PROJECT_DIR$/apitest" />
-          </excludedPaths>
-        </serverdata>
-      </paths>
     </serverData>
   </component>
 </project>

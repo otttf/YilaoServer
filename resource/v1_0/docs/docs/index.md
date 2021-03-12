@@ -321,7 +321,7 @@ PATCH http://127.0.0.1:15000/v1.0/users/$mobile/orders/$order_id?token=$token&ap
 ### 可接取的订单
 
 ```
-GET http://127.0.0.1:5000/v1.0/public_orders?begin=$begin&end=$end&type=type
+GET http://127.0.0.1:5000/v1.0/public_orders?begin=$begin&end=$end&type=type&mobile=$mobile
 ```
 
 `$begin`：整数，以现在为基准的时间偏移，单位为秒
@@ -329,6 +329,8 @@ GET http://127.0.0.1:5000/v1.0/public_orders?begin=$begin&end=$end&type=type
 `$end`：整数，同上
 
 `$type`：订单类别
+
+`$mobile`：获取订单的用户，服务端将不会返回该用户的订单
 
 时间筛选举例：如果需要选择3分钟前到2分钟前的订单，则$begin=-3\*60=-180（注意要有负号），\$end=-2\*60=-120
 
@@ -394,6 +396,30 @@ POST http://127.0.0.1:5000/v1.0/users/$mobile/dialogs?token=$token&appid=df3b72a
 ##### 返回
 
 `201`：成功
+
+## 获取和自己通讯过的所有用户
+
+```
+GET http://127.0.0.1:5000/v1.0/users/$mobile/dialogs_users?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab
+```
+
+`$mobile`：手机号
+
+`$token`：令牌
+
+##### 返回
+
+`201`：成功
+
+```
+[
+	{
+		user1,
+		"last_send_at": "",
+		"last_content": "",
+	}
+]
+```
 
 ## 获取
 

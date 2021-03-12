@@ -8,6 +8,12 @@ import shutil
 import os
 
 
+def get_user(mobile, *args):
+    with mycursor(dictionary=True, autocommit=False) as c:
+        c.execute(f"select {', '.join(args)} from user where mobile=%s", (mobile,))
+        return c.fetchall()
+
+
 class UserResource(Resource):
     def get(self, mobile):
         _use(self)

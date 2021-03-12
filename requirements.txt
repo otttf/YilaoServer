@@ -1,7 +1,6 @@
 Flask~=1.1.2
 mkdocs~=1.1.2
 marshmallow~=3.7.1
-mysql-connector-python~=8.0.21
 redis~=3.5.3
 requests~=2.24.0
 Werkzeug~=1.0.1

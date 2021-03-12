@@ -9,13 +9,6 @@
           </advancedOptions>
         </fileTransfer>
       </webServer>
-      <webServer id="5493de4a-ce54-42c3-9797-d4477237b4b5" name="yilao2" url="http://api2.yilao.tk">
-        <fileTransfer rootFolder="/root" accessType="SFTP" host="api2.yilao.tk" port="22" sshConfigId="69686b06-3384-4dd1-b6f3-158067e9c44a" sshConfig="root@api2.yilao.tk:22 key" keyPair="true">
-          <advancedOptions>
-            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
-          </advancedOptions>
-        </fileTransfer>
-      </webServer>
     </option>
   </component>
 </project>

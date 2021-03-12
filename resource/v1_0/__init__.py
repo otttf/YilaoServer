@@ -5,7 +5,7 @@ from mkdocs.__main__ import build
 # import tempfile
 from wrap import send, recv
 from .commodity import CommodityListResource, CommodityResource
-from .dialog import DialogListResource, DialogResource
+from .dialog import DialogListResource, DialogResource, DialogUsersResource
 from .order import PublicOrderListResource, OrderListResource, OrderResource
 from .resource import get_public_resource, ResourceListResource
 from .user import UserResource
@@ -39,6 +39,7 @@ def register_api_1_0(app: Flask):
 
     api.add_resource(CommodityListResource, '/v1.0/users/<int:mobile>/commodities')
     api.add_resource(CommodityResource, '/v1.0/commodities/<int:commodity_id>')
+    api.add_resource(DialogUsersResource, '/v1.0/users/<int:mobile>/dialogs_users')
     api.add_resource(DialogListResource, '/v1.0/users/<int:mobile>/dialogs_with/<int:other>')
     api.add_resource(DialogResource, '/v1.0/users/<int:mobile>/dialogs')
     api.add_resource(OrderListResource, '/v1.0/users/<int:mobile>/orders')

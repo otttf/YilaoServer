@@ -6,6 +6,36 @@ from flask_restful import Resource
 from schema import dialog_schema
 from ..util import curd_params, mycursor
 from .validation import token_validate
+from marshmallow import Schema, fields
+
+
+class DialogUserSchema(Schema):
+    mobile = fields.Str()
+    id_name = fields.Str()
+    id_photo = fields.Str()
+    last_send_at = fields.DateTime()
+    last_content = fields.Str()
+
+
+dialog_user_schema = DialogUserSchema()
+
+
+class DialogUsersResource(Resource):
+    @token_validate
+    def get(self, mobile):
+        with mycursor(dictionary=True) as c:
+            sql = """select mobile, id_name, id_photo, send_at last_send_at, content last_content
+                from dialog
+                         left join user u on u.mobile = dialog.from_user
+                where to_user = %s
+                  and id = (select d.id
+                            from dialog d
+                            where d.from_user = dialog.from_user
+                              and d.to_user = dialog.to_user
+                            order by send_at
+                limit 1)"""
+            c.execute(sql, (mobile,))
+            return dialog_user_schema.dump(c.fetchall(), many=True)
 
 
 class DialogListResource(Resource):

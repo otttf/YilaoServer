@@ -35,6 +35,7 @@ class OrderListResource(Resource):
         except TypeError:
             end = None
         type_ = request.args.get('type')
+        mobile = request.args.get('mobile')
         res = []
         for order in orders:
             create_at = order['create_at']
@@ -43,6 +44,8 @@ class OrderListResource(Resource):
             if end is not None and create_at > end:
                 continue
             if type_ is not None and order['type'] != type_:
+                continue
+            if mobile is not None and order['mobile'] == mobile:
                 continue
             res.append(order)
         return res
