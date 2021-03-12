@@ -82,7 +82,8 @@ class SmartCursor:
         self.mysql_conn.ping(True)
         self.cursor = self.mysql_conn.cursor(**self.kwargs)
         if DBGConfig.on and DBGConfig.MySQL.close_foreign_key != self.close_foreign_key:
-            self.cursor.execute('set foreign_key_checks = %s', (not DBGConfig.MySQL.close_foreign_key,))
+            # self.cursor.execute('set foreign_key_checks = %s', (not DBGConfig.MySQL.close_foreign_key,))
+            # line 85 可能导致了Segmentation fault错误，暂时注释
             self.close_foreign_key = DBGConfig.MySQL.close_foreign_key
         return self.cursor
 

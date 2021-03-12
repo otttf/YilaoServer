@@ -14,7 +14,8 @@ class PublicOrderListResource(Resource):
         _use(self)
         with mycursor(dictionary=True) as c:
             c.execute(
-                "select *, u.id_photo from `order` left join user u on u.mobile = `order`.from_user where executor is null and close_state is null")
+                "select *, u.id_photo from `order` left join user u on u.mobile = `order`.from_user "
+                "where executor is null and close_state is null")
             order_list = c.fetchall()
             for order in order_list:
                 dump_locations(order, order_schema)
