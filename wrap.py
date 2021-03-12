@@ -1,7 +1,6 @@
 from config.abstractconfig import DBGConfig, GunicornConfig, MySQLConfig, RedisConfig, yl
 import mysql.connector.abstracts
 import mysql.connector.cursor
-import mysql.connector.cursor_cext
 import mysql.connector.errorcode
 import os
 import re
