@@ -1,4 +1,5 @@
 from config.yilaoconfig import *
+from functools import partial
 from flask import request, Response
 import logging
 import json
@@ -6,7 +7,7 @@ from mysqlscript import iter_table, UserVersion
 from resource import *
 import resource.util
 import sys
-from wrap import connect_mysql, connect_redis, SmartCursor, Sync
+from wrap import get_my_connection_pool, connect_redis, SmartCursor, Sync
 import faulthandler
 
 faulthandler.enable()
@@ -18,7 +19,8 @@ logger = app.logger
 
 def init_database():
     logger.info('Begin to build database')
-    with SmartCursor(connect_mysql(db=None, logger=logger)) as c:
+    database_pool = get_my_connection_pool(db=None, logger=logger)
+    with SmartCursor(database_pool) as c:
         if Environment.rank() == 0:
             if DBGConfig.on and DBGConfig.MySQL.drop_before_run:
                 logger.info('drop database')
@@ -34,18 +36,14 @@ def init_database():
     logger.info('Build database successfully')
 
 
-def sync():
-    return Sync(rcon)
-
-
 rcon = connect_redis(logger=logger)
 impl(rcon, __name__ != '__main__')
 if MySQLConfig.init_database:
-    with sync():
+    with Sync(rcon):
         init_database()
-mcon = connect_mysql(logger=logger)
-resource.util.get_mcon = lambda: mcon
-resource.util.real_get_rcon = lambda: rcon
+# mcon = connect_mysql(logger=logger)
+# resource.util.get_mcon = lambda: mcon
+# resource.util.real_get_rcon = lambda: rcon
 resource.util.logger = logger
 register_api(app)
 
@@ -53,6 +51,8 @@ register_api(app)
 @app.after_request
 def output_body(response: Response):
     width = 50
+    import threading
+    logger.debug(f'thread: {threading.active_count()}')
     logger.debug(' Request Body '.center(width, '='))
     if len(request.data) != 0:
         try:
@@ -74,4 +74,4 @@ def output_body(response: Response):
 
 
 if __name__ == '__main__':
-    app.run(ServerConfig.host, ServerConfig.port, True, use_reloader=False)
+    app.run(ServerConfig.host, ServerConfig.port, True, use_reloader=False, threaded=True)

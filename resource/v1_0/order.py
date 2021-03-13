@@ -12,7 +12,7 @@ class PublicOrderListResource(Resource):
     def get(self):
         """获取所有可以接取的任务"""
         _use(self)
-        with mycursor(dictionary=True) as c:
+        with mycursor(dictionary=True, autocommit=False) as c:
             c.execute(
                 "select *, u.id_photo from `order` left join user u on u.mobile = `order`.from_user "
                 "where executor is null and close_state is null")
@@ -53,7 +53,7 @@ class OrderListResource(Resource):
     @token_validate
     def get(self, mobile):
         """获取和自己相关的订单，自己是发布者或者自己是执行者"""
-        with mycursor(dictionary=True) as c:
+        with mycursor(dictionary=True, autocommit=False) as c:
             # TODO 加入时间筛选
             c.execute('select * from `order` where from_user=%s or executor=%s', (mobile, mobile))
             order_list = c.fetchall()

@@ -23,7 +23,7 @@ dialog_user_schema = DialogUserSchema()
 class DialogUsersResource(Resource):
     @token_validate
     def get(self, mobile):
-        with mycursor(dictionary=True) as c:
+        with mycursor(dictionary=True, autocommit=False) as c:
             sql = """select mobile, id_name, id_photo, send_at last_send_at, content last_content
                 from dialog
                          left join user u on u.mobile = dialog.from_user
@@ -62,7 +62,7 @@ class DialogListResource(Resource):
 
     @token_validate
     def get(self, mobile, other):
-        with mycursor(dictionary=True) as c:
+        with mycursor(dictionary=True, autocommit=False) as c:
             c.execute('select * from dialog where (from_user=%s and to_user=%s) or (from_user=%s and to_user=%s)',
                       (mobile, other, other, mobile))
             return dialog_schema.dump(self.filter_(c.fetchall()), many=True)

@@ -14,18 +14,17 @@ from schema import PointSchema
 import sys
 import traceback
 from werkzeug.exceptions import HTTPException
-from wrap import connect_mysql, connect_redis, SmartCursor
+from wrap import MyConnectionPool, get_my_connection_pool, connect_redis, SmartCursor
+from typing import Optional
 
 logger = logging
-get_mcon = connect_mysql
+mcon_pool = get_my_connection_pool()
 real_get_rcon = connect_redis
 
 
-def mycursor(conn=None, autocommit=True, close_conn=False, buffered=None, raw=None, prepared=None,
-             cursor_class=None, dictionary=None, named_tuple=None):
-    if conn is None:
-        conn = get_mcon()
-    return SmartCursor(conn, autocommit, close_conn, buffered=buffered, raw=raw, prepared=prepared,
+def mycursor(autocommit=True, buffered=None, raw=None, prepared=None, cursor_class=None, dictionary=None,
+             named_tuple=None):
+    return SmartCursor(mysql_conn_pool=mcon_pool, autocommit=autocommit, buffered=buffered, raw=raw, prepared=prepared,
                        cursor_class=cursor_class, dictionary=dictionary, named_tuple=named_tuple)
 
 
@@ -123,7 +122,6 @@ class BaseApi(Api):
                 key = self.no_referenced_row.match(e.msg)[1]
                 return exc(f'{key}不存在', True), 400
             else:
-                print_tb()
                 logger.debug(str(e))
                 return Response(status=500)
         elif isinstance(e, ValidationError):

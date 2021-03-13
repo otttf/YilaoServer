@@ -25,6 +25,6 @@ class CommodityListResource(Resource):
 class CommodityResource(Resource):
     def get(self, commodity_id):
         _use(self)
-        with mycursor(dictionary=True) as c:
+        with mycursor(dictionary=True, autocommit=False) as c:
             c.execute('select * from commodity where id=%s limit 1', (commodity_id,))
             return commodity_schema.dump(c.fetchone())

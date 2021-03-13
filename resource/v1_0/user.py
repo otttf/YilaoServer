@@ -17,7 +17,7 @@ def get_user(mobile, *args):
 class UserResource(Resource):
     def get(self, mobile):
         _use(self)
-        with mycursor(dictionary=True) as c:
+        with mycursor(dictionary=True, autocommit=False) as c:
             c.execute('select * from user where mobile=%s limit 1', (mobile,))
             res = c.fetchone()
             if res is None:

@@ -2,6 +2,7 @@ from config.abstractconfig import DBGConfig, GunicornConfig, MySQLConfig, RedisC
 import mysql.connector.abstracts
 import mysql.connector.cursor
 import mysql.connector.errorcode
+import mysql.connector.pooling
 import os
 import re
 import redis
@@ -39,8 +40,24 @@ class MySQLRetryError(Exception):
     pass
 
 
-def connect_mysql(host=MySQLConfig.host, port=MySQLConfig.port, db: Optional[str] = MySQLConfig.db,
-                  user=MySQLConfig.user, passwd=MySQLConfig.passwd, logger=None, **kwargs):
+class MyConnectionPool(mysql.connector.pooling.MySQLConnectionPool):
+    def __init__(self, *args, **kwargs):
+        pool_size = 10
+        self.sem = threading.Semaphore(pool_size)
+        super().__init__(*args, **kwargs)
+
+    def get_connection(self):
+        self.sem.acquire()
+        return super().get_connection()
+
+    def put_connection(self, conn):
+        conn.close()
+        self.sem.release()
+
+
+def get_my_connection_pool(host=MySQLConfig.host, port=MySQLConfig.port, db: Optional[str] = MySQLConfig.db,
+                           user=MySQLConfig.user, passwd=MySQLConfig.passwd, logger=None, pool_size=10, pool_name='app',
+                           **kwargs):
     if logger:
         logger.info('Connect to mysql server')
 
@@ -55,10 +72,11 @@ def connect_mysql(host=MySQLConfig.host, port=MySQLConfig.port, db: Optional[str
                 logger.info(f'Connect time {i + 1}: cannot find host "{MySQLConfig.host}"')
     for i in range(i, MySQLConfig.retry_times):
         try:
-            conn = mysql.connector.connect(host=host, port=port, user=user, passwd=passwd, db=db, **kwargs)
+            conn_pool = MyConnectionPool(host=host, port=port, user=user, passwd=passwd, db=db, pool_size=pool_size,
+                                         pool_name=pool_name, **kwargs)
             if logger:
                 logger.info('Connect successfully')
-            return conn
+            return conn_pool
         except mysql.connector.Error:
             if logger:
                 logger.info(f'Connect Time {i + 1}: connect failed')
@@ -69,32 +87,32 @@ def connect_mysql(host=MySQLConfig.host, port=MySQLConfig.port, db: Optional[str
 class SmartCursor:
     close_foreign_key = None
 
-    def __init__(self, mysql_conn=None, autocommit=True, close_conn=True, **kwargs):
-        if mysql_conn is None:
-            mysql_conn = connect_mysql()
-        self.mysql_conn = mysql_conn
+    def __init__(self, mysql_conn_pool: MyConnectionPool, autocommit=True, **kwargs):
+        self.mysql_conn_pool = mysql_conn_pool
+        self.mysql_conn = mysql_conn_pool.get_connection()
         self.autocommit = autocommit
-        self.close_conn = close_conn
         self.kwargs = kwargs
 
     def __enter__(self):
         self.mysql_conn.ping(True)
         self.cursor = self.mysql_conn.cursor(**self.kwargs)
-        if DBGConfig.on and DBGConfig.MySQL.close_foreign_key != self.close_foreign_key:
-            # self.cursor.execute('set foreign_key_checks = %s', (not DBGConfig.MySQL.close_foreign_key,))
-            # line 85 可能导致了Segmentation fault错误，暂时注释
+        if DBGConfig.on and self.close_foreign_key != DBGConfig.MySQL.close_foreign_key:
+            self.cursor.execute('set foreign_key_checks = %s', (not DBGConfig.MySQL.close_foreign_key,))
             self.close_foreign_key = DBGConfig.MySQL.close_foreign_key
         return self.cursor
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        # try:
+        #     self.cursor.fetchall()
+        # except mysql.connector.InternalError as e:
+        #     print('debug:', e)
         self.cursor.close()
         if self.autocommit:
             if exc_type:
                 self.mysql_conn.rollback()
             else:
                 self.mysql_conn.commit()
-        if self.close_conn:
-            self.mysql_conn.close()
+        self.mysql_conn_pool.put_connection(self.mysql_conn)
 
 
 class RedisRetryError(Exception):
