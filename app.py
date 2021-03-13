@@ -74,4 +74,4 @@ def output_body(response: Response):
 
 
 if __name__ == '__main__':
-    app.run(ServerConfig.host, ServerConfig.port, True, use_reloader=False)
+    app.run(ServerConfig.host, ServerConfig.port, True, use_reloader=False, threaded=False)
