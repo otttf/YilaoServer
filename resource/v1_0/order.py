@@ -14,8 +14,8 @@ class PublicOrderListResource(Resource):
         _use(self)
         with mycursor(dictionary=True) as c:
             c.execute(
-                "select *, u.id_photo from `order` left join user u on u.mobile = `order`.from_user "
-                "where executor is null and close_state is null")
+                "select *, u.id_photo, u.id_name from `order` left join user u on u.mobile = `order`.from_user "
+                "where executor is null and close_state is null and u.id_school=`order`.destination_name")
             order_list = c.fetchall()
             for order in order_list:
                 dump_locations(order, order_schema)
@@ -35,6 +35,7 @@ class OrderListResource(Resource):
         except TypeError:
             end = None
         type_ = request.args.get('type')
+        category = request.args.get('category')
         mobile = request.args.get('mobile')
         res = []
         for order in orders:
@@ -45,6 +46,8 @@ class OrderListResource(Resource):
                 continue
             if type_ is not None and order['type'] != type_:
                 continue
+            if category is not None and order['category'] != category:
+                continue
             if mobile is not None and order['mobile'] == mobile:
                 continue
             res.append(order)
@@ -54,8 +57,11 @@ class OrderListResource(Resource):
     def get(self, mobile):
         """获取和自己相关的订单，自己是发布者或者自己是执行者"""
         with mycursor(dictionary=True) as c:
-            # TODO 加入时间筛选
-            c.execute('select * from `order` where from_user=%s or executor=%s', (mobile, mobile))
+            c.execute('select *, u.id_photo id_photo, u.id_name id_name, '
+                      'u1.id_photo id_photo1, u1.id_name id_name1 from `order` '
+                      'left join user u on `order`.from_user = u.mobile '
+                      'left join user u1 on `order`.executor=u1.mobile '
+                      'where from_user=%s or executor=%s', (mobile, mobile))
             order_list = c.fetchall()
             for order in order_list:
                 dump_locations(order, order_schema)

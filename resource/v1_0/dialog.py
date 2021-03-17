@@ -10,11 +10,13 @@ from marshmallow import Schema, fields
 
 
 class DialogUserSchema(Schema):
-    mobile = fields.Str()
+    from_user = fields.Str()
+    to_user = fields.Str()
     id_name = fields.Str()
     id_photo = fields.Str()
     last_send_at = fields.DateTime()
     last_content = fields.Str()
+    type = fields.Str()
 
 
 dialog_user_schema = DialogUserSchema()
@@ -24,17 +26,28 @@ class DialogUsersResource(Resource):
     @token_validate
     def get(self, mobile):
         with mycursor(dictionary=True) as c:
-            sql = """select mobile, id_name, id_photo, send_at last_send_at, content last_content
-                from dialog
-                         left join user u on u.mobile = dialog.from_user
-                where to_user = %s
-                  and id = (select d.id
-                            from dialog d
-                            where d.from_user = dialog.from_user
-                              and d.to_user = dialog.to_user
-                            order by send_at
-                limit 1)"""
-            c.execute(sql, (mobile,))
+            sql = """select from_user, to_user, id_name, id_photo, send_at last_send_at, content last_content, type
+from dialog
+         left join user u on u.mobile = dialog.to_user
+where from_user = %s
+  and id = (select d.id
+            from dialog d
+            where (d.from_user = %s and d.to_user = dialog.to_user)
+               or (d.from_user = dialog.to_user and d.to_user = %s)
+            order by send_at desc
+            limit 1)
+union
+select from_user, to_user, id_name, id_photo, send_at last_send_at, content last_content, type
+from dialog
+         left join user u on u.mobile = dialog.from_user
+where to_user = %s
+  and id = (select d.id
+            from dialog d
+            where (d.from_user = dialog.from_user and d.to_user = %s)
+               or (d.from_user = %s and d.to_user = dialog.from_user)
+            order by send_at desc
+            limit 1);"""
+            c.execute(sql, (mobile, mobile, mobile, mobile, mobile, mobile))
             return dialog_user_schema.dump(c.fetchall(), many=True)
 
 
@@ -42,6 +55,7 @@ class DialogListResource(Resource):
     @staticmethod
     def filter_(dialogs: List[dict]):
         now = datetime.utcnow()
+        min_id = request.args.get('min_id', -1, int)
         try:
             begin = now + timedelta(seconds=int(request.args.get('begin')))
         except TypeError:
@@ -57,15 +71,24 @@ class DialogListResource(Resource):
                 continue
             if end is not None and create_at > end:
                 continue
+            if min_id != -1 and dialog['id'] < min_id:
+                continue
             res.append(dialog)
         return res
 
     @token_validate
     def get(self, mobile, other):
         with mycursor(dictionary=True) as c:
-            c.execute('select * from dialog where (from_user=%s and to_user=%s) or (from_user=%s and to_user=%s)',
-                      (mobile, other, other, mobile))
-            return dialog_schema.dump(self.filter_(c.fetchall()), many=True)
+            min_id = request.args.get('min_id', -1, int)
+            c.execute('select * from dialog '
+                      'where (from_user=%s and (%s=0 or to_user=%s)) '
+                      'or ((%s=0 or from_user=%s) and to_user=%s) and (%s!=0 or receive=0)',
+                      (mobile, other, other, other, other, mobile, min_id))  # min_id为0时only_receive
+            fetch_result = c.fetchall()
+            res = dialog_schema.dump(self.filter_(fetch_result), many=True)
+            ids = tuple(map(lambda it: (it['id'],), fetch_result))
+            c.executemany(f"update dialog set receive=1 where id=%s", ids)
+            return res
 
 
 class DialogResource(Resource):
@@ -74,6 +97,7 @@ class DialogResource(Resource):
         with mycursor() as c:
             data = dialog_schema.loads(request.data.decode())
             data['from_user'] = mobile
+            data['send_at'] = datetime.utcnow().replace(microsecond=0)
             to_insert = curd_params(data, dialog_schema)
             c.execute(f'insert into dialog set {to_insert[0]}', to_insert[1])
-            return Response(status=201)
+            return dialog_schema.dump({'id': c.lastrowid, 'send_at': data['send_at']}), 201

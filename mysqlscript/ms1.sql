@@ -46,9 +46,11 @@ create table dialog
 (
     id        int unsigned primary key auto_increment,
     content   text,
+    type      text,
     from_user bigint unsigned,
     to_user   bigint unsigned,
     send_at   timestamp default current_timestamp,
+    receive   int      default false,
     foreign key (from_user) references user (mobile),
     foreign key (to_user) references user (mobile)
 );

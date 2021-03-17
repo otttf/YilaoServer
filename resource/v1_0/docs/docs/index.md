@@ -391,7 +391,7 @@ POST http://127.0.0.1:5000/v1.0/users/$mobile/dialogs?token=$token&appid=df3b72a
 
 `$content`：要发送的内容
 
-`$to_user`：要发送的用户
+`$to_user`：要发送的用户，为0则获取与所有用户的信息
 
 ##### 返回
 
@@ -414,9 +414,10 @@ GET http://127.0.0.1:5000/v1.0/users/$mobile/dialogs_users?token=$token&appid=df
 ```
 [
 	{
-		user1,
+		“from_user" : 0,
+		"to_user": 0,
 		"last_send_at": "",
-		"last_content": "",
+		"last_content": ""
 	}
 ]
 ```
@@ -424,7 +425,7 @@ GET http://127.0.0.1:5000/v1.0/users/$mobile/dialogs_users?token=$token&appid=df
 ## 获取
 
 ```
-GET http://127.0.0.1:5000/v1.0/users/$mobile/dialogs_with/$another_user?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab
+GET http://127.0.0.1:5000/v1.0/users/$mobile/dialogs_with/$another_user?token=$token&appid=df3b72a07a0a4fa1854a48b543690eab&min_id=$min_id
 ```
 
 `$mobile`：手机号
@@ -432,6 +433,8 @@ GET http://127.0.0.1:5000/v1.0/users/$mobile/dialogs_with/$another_user?token=$t
 `$another_user`：另一个用户
 
 `$token`：令牌
+
+`$min_id`：筛选id，如果id=0则启用receive=true
 
 ##### 返回
 

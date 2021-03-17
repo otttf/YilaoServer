@@ -44,11 +44,13 @@ class ResourceSchema(Schema):
 class DialogSchema(Schema):
     class Meta:
         ordered = True
+
     id = fields.Int(dump_only=True)
     content = fields.Str()
     from_user = fields.Int(dump_only=True)
     to_user = fields.Int()
     send_at = fields.DateTime(dump_only=True)
+    type = fields.Str()
 
 
 class CommoditySchema(Schema):
@@ -63,6 +65,9 @@ class CommoditySchema(Schema):
 
 
 class OrderSchema(Schema):
+    class Meta:
+        ordered = True
+
     id = fields.Int(dump_only=True)
     from_user = fields.Int(dump_only=True)
     phone = fields.Int()
@@ -84,6 +89,9 @@ class OrderSchema(Schema):
     id_photo = fields.Str(dump_only=True)
     photos = fields.Str()
     name = fields.Str()
+    id_name = fields.Str()
+    id_photo1 = fields.Str()
+    id_name1 = fields.Str()
 
 
 user_schema = UserSchema()
