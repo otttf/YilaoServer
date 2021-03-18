@@ -56,6 +56,7 @@ def connect_mysql(host=MySQLConfig.host, port=MySQLConfig.port, db: Optional[str
     for i in range(i, MySQLConfig.retry_times):
         try:
             conn = mysql.connector.connect(host=host, port=port, user=user, passwd=passwd, db=db, **kwargs)
+            conn.time_zone = "+08:00"
             if logger:
                 logger.info('Connect successfully')
             return conn

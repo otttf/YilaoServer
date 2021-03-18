@@ -4,7 +4,7 @@ from typing import List
 from flask import request, Response
 from flask_restful import Resource
 from schema import dialog_schema
-from ..util import curd_params, mycursor
+from ..util import curd_params, mycursor, get_now
 from .validation import token_validate
 from marshmallow import Schema, fields
 
@@ -54,7 +54,7 @@ where to_user = %s
 class DialogListResource(Resource):
     @staticmethod
     def filter_(dialogs: List[dict]):
-        now = datetime.utcnow()
+        now = get_now()
         min_id = request.args.get('min_id', -1, int)
         try:
             begin = now + timedelta(seconds=int(request.args.get('begin')))
@@ -97,7 +97,7 @@ class DialogResource(Resource):
         with mycursor() as c:
             data = dialog_schema.loads(request.data.decode())
             data['from_user'] = mobile
-            data['send_at'] = datetime.utcnow().replace(microsecond=0)
+            data['send_at'] = get_now().replace(microsecond=0)
             to_insert = curd_params(data, dialog_schema)
             c.execute(f'insert into dialog set {to_insert[0]}', to_insert[1])
             return dialog_schema.dump({'id': c.lastrowid, 'send_at': data['send_at']}), 201

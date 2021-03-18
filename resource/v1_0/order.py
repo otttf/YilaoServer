@@ -3,7 +3,7 @@ from flask import request, Response
 from flask_restful import Resource
 from schema import order_schema
 from wrap import _use
-from ..util import dump_locations, curd_params, exc, mycursor, null_point
+from ..util import dump_locations, curd_params, exc, mycursor, null_point, get_now
 from .validation import token_validate
 from typing import List
 
@@ -25,7 +25,7 @@ class PublicOrderListResource(Resource):
 class OrderListResource(Resource):
     @staticmethod
     def filter_(orders: List[dict]):
-        now = datetime.utcnow()
+        now = get_now()
         try:
             begin = now + timedelta(seconds=int(request.args.get('begin')))
         except TypeError:
@@ -108,7 +108,7 @@ class OrderResource(Resource):
                     # 如果要取消接单
                     if order['executor'] == mobile:
                         # 如果接受者是自己，那么三分钟内可以取消
-                        if datetime.utcnow() - order['receive_at'] < timedelta(minutes=3):
+                        if get_now() - order['receive_at'] < timedelta(minutes=3):
                             c.execute('update `order` set receive_at=null, executor=null where id=%s', (order_id,))
                         else:
                             return exc('超过三分钟，无法取消接单'), 400

@@ -11,6 +11,7 @@ from mysql.connector.errorcode import *
 import re
 from shapely import wkb
 from schema import PointSchema
+from datetime import datetime, timedelta, timezone
 import sys
 import traceback
 from werkzeug.exceptions import HTTPException
@@ -94,6 +95,10 @@ def to_readable_location(di: dict, name):
         }
     else:
         di[name] = None
+
+
+def get_now():
+    return datetime.utcnow() + timedelta(hours=8)
 
 
 def dump_locations(di: dict, schema: Schema):
