@@ -81,13 +81,14 @@ class DialogListResource(Resource):
         with mycursor(dictionary=True) as c:
             min_id = request.args.get('min_id', -1, int)
             c.execute('select * from dialog '
-                      'where (from_user=%s and (%s=0 or to_user=%s)) '
-                      'or ((%s=0 or from_user=%s) and to_user=%s) and (%s!=0 or receive=0)',
+                      'where ((from_user=%s and (%s=0 or to_user=%s)) '
+                      'or ((%s=0 or from_user=%s) and to_user=%s)) and (%s!=0 or receive=0)',
                       (mobile, other, other, other, other, mobile, min_id))  # min_id为0时only_receive
-            fetch_result = c.fetchall()
-            res = dialog_schema.dump(self.filter_(fetch_result), many=True)
-            ids = tuple(map(lambda it: (it['id'],), fetch_result))
-            c.executemany(f"update dialog set receive=1 where id=%s", ids)
+            result = self.filter_(c.fetchall())
+            res = dialog_schema.dump(result, many=True)
+            c.execute('update dialog set receive=1 '
+                      'where id in (select id from yilao.dialog where ((%s=0 or from_user=%s) and to_user=%s))',
+                      (other, other, mobile))
             return res
 
 
