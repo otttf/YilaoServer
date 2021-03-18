@@ -128,7 +128,6 @@ class BaseApi(Api):
                 key = self.no_referenced_row.match(e.msg)[1]
                 return exc(f'{key}不存在', True), 400
             else:
-                print_tb()
                 logger.debug(str(e))
                 return Response(status=500)
         elif isinstance(e, ValidationError):

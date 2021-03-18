@@ -13,6 +13,8 @@ varchar32 = partial(varchar, n=32)
 varchar64 = partial(varchar, n=64)
 text = partial(varchar, n=65535)
 
+fields.DateTime = partial(fields.DateTime, format='%Y-%m-%d %H:%M:%S')
+
 
 class PointSchema(Schema):
     longitude = fields.Float(validate=lambda it: -180 <= it <= 180)
